@@ -2,7 +2,7 @@ import torch
 import pandas as pd
 import numpy as np
 from torch.utils.data import Dataset
-from transformers import GPT2LMHeadModel, GPT2Tokenizer
+from transformers import GPT2Tokenizer
 
 class BioDataset(Dataset):
     ''' Dataset class for the sample character bios. 

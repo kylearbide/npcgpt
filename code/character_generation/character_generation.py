@@ -1,7 +1,8 @@
 import numpy as np 
 import pandas as pd 
 import re 
-from transformers import GPT2LMHeadModel, GPT2Tokenizer
+from tqdm import tqdm, trange 
+from transformers import GPT2LMHeadModel, GPT2Tokenizer, AdamW, get_linear_schedule_with_warmup
 import torch 
 from torch.utils.data import Dataset, DataLoader
 import torch.nn.functional as F
@@ -69,7 +70,28 @@ def train(dataset, model, tokenizer,
         warmup_steps = 5000, gpt2_type = MODEL_TYPE,
         output_dir = '.', output_prefix = 'character_generation',
         test_mode = False, save_model_on_epoch = False):
+    '''
+    '''
     
     # send model to the gpu (if available) and then set model to training mode
     model = model.to(DEVICE)
     model.train()
+
+    optimizer = AdamW(model.parameters(), lr = learning_rate)
+    scheduler = get_linear_schedule_with_warmup(optimizer, num_warmup_steps = warmup_steps, num_training_steps = -1)
+
+    # pin_memory = True 
+    train_dataloader = DataLoader(dataset, batch_size = 1, shuffle = True)
+
+    for epoch in range(epochs):
+
+        print(f'Epoch: {epoch + 1}/{EPOCHS}')
+        
+        optimizer.zero_grad()
+        loss = 0
+        input_tensor = None 
+        losses = []
+        accumulate = torch.zeros(len(train_dataloader), dtype = torch.bool)
+
+        for batch_idx, (idx, entry) in tqdm(enumerate(train_dataloader)):
+            pass
