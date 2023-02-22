@@ -56,7 +56,24 @@ model = GPT2LMHeadModel.from_pretrained(MODEL_TYPE)
 ### model and packing code
 
 def pack_tensor(new_tensor, packed_tensor, max_seq_len):
-    ''' 
+    ''' Dynamically batches data into a single tensor of length max_seq_len. Due to the size of 
+    GPT2 and the data, this is done to more effeciently use computation resources instead of 
+    padding single tensors with 0s to make them of the same length. 
+
+    Parameters
+    ----------
+    new_tensor : torch.Tensor
+        The new data to be batched.
+    packed_tensor : torch.Tensor or None
+        The existing packed_tensor to add the new_tensor to. 
+    max_seq_len : int 
+        Maximum sequence length for the packed tensors. 
+
+    Returns
+    -------
+    (torch.Tensor, bool, torch.Tensor or None)
+        The new packed tensor. Boolean value indicating whether the packing was successful.
+        If the packing was not successful, the tensor that could not be packed, None otherwise.
     '''
     if packed_tensor is None:
         return new_tensor, True, None 
@@ -73,7 +90,13 @@ def train(dataset, model, tokenizer,
         warmup_steps = 5000, gpt2_type = MODEL_TYPE,
         output_dir = '.', output_prefix = 'character_generation',
         test_mode = False, save_model_on_epoch = False):
-    '''
+    ''' Training loop. 
+
+    Parameters
+    ----------
+
+    Returns 
+    -------
     '''
     
     # send model to the gpu (if available) and then set model to training mode
