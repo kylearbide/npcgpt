@@ -1,10 +1,12 @@
 import numpy as np 
 import pandas as pd 
 import re 
+import os
 from tqdm import tqdm, trange 
-from transformers import GPT2LMHeadModel, GPT2Tokenizer, AdamW, get_linear_schedule_with_warmup
+from transformers import GPT2LMHeadModel, GPT2Tokenizer, get_linear_schedule_with_warmup
 import torch 
 from torch.utils.data import Dataset, DataLoader
+from torch.optim import AdamW
 import torch.nn.functional as F
 from bio_dataset import BioDataset
 
@@ -56,12 +58,13 @@ model = GPT2LMHeadModel.from_pretrained(MODEL_TYPE)
 def pack_tensor(new_tensor, packed_tensor, max_seq_len):
     ''' 
     '''
-    if pack_tensor is None:
+    if packed_tensor is None:
         return new_tensor, True, None 
     if new_tensor.size()[1] + packed_tensor.size()[1] > max_seq_len:
         return packed_tensor, False, new_tensor
     else:
-        packed_tensor = torch.cat([new_tensor, packed_tensor[:, 1:]], dim = 1)
+        # [:, 1:]
+        packed_tensor = torch.cat([new_tensor, packed_tensor], dim = 1)
         return packed_tensor, True, None 
 
 def train(dataset, model, tokenizer,
@@ -93,5 +96,64 @@ def train(dataset, model, tokenizer,
         losses = []
         accumulate = torch.zeros(len(train_dataloader), dtype = torch.bool)
 
+        # debugging
+        # count = 0
+
         for batch_idx, (idx, entry) in tqdm(enumerate(train_dataloader)):
-            pass
+
+            (input_tensor, carry_on, remainder) = pack_tensor(entry, input_tensor, max_seq_len)
+
+            # debugging 
+            # print(f'\nBatch {batch_idx} ----------------------------------------')
+            # print(f'idx: {idx}')
+            # print(f'Entry shape: {entry.shape}')
+            # print(f'Entry: {entry}')
+            # print(f'Input tensor shape: {input_tensor.shape}')
+            # print(f'Input tensor: {input_tensor}')
+            # print(f'Input tensor[:,1:]: {input_tensor[:, 1:]}')
+            # print(f'Input tensor[:,1:] shape: {input_tensor[:, 1:].shape}')
+            # print(f'Carry on: {carry_on}')
+            # print(f'Remainder: {remainder}')
+            # if count == 3:
+            #     break 
+            # count += 1
+
+            if carry_on and ((batch_idx + 1) != len(train_dataloader)):
+                continue
+
+            input_tensor = input_tensor.to(DEVICE)
+            outputs = model(input_tensor, labels = input_tensor)
+            loss = outputs[0]
+            loss.backward()
+
+            if (((batch_idx + 1) % batch_size) == 0) or ((batch_idx + 1) == len(train_dataloader)):
+                optimizer.step()
+                scheduler.step()
+                optimizer.zero_grad()
+                accumulate[batch_idx] = 1
+            
+            input_tensor = remainder
+            losses.append(loss.detach().cpu().item())
+
+            print(f'Average loss: {np.mean(losses)} for epoch {epoch}')
+
+            if save_model_on_epoch:
+                print(f'Saving epoch {epoch} state')
+                torch.save({
+                    'epoch' : epoch,
+                    'accumulated_batches' : batch_size,
+                    'learning_rate' : learning_rate, 
+                    'max_seq_len' : max_seq_len,
+                    'state_dict' : model.state_dict(),
+                    'losses' : losses,
+                    'accumulate' : accumulate},
+                    os.path.join(output_dir, f'{output_prefix}-{epoch}.torch')   
+                )
+        
+        # debugging 
+        # if count == 3:
+        #     break
+    
+    return model 
+            
+model = train(dataset, model, tokenizer)

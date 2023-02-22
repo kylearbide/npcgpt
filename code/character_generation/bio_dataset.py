@@ -87,4 +87,4 @@ class BioDataset(Dataset):
         torch.Tensor
             Returns bio at a at the specified index. 
         '''
-        return self.bios[idx]
+        return idx, self.bios[idx]
