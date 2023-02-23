@@ -86,16 +86,40 @@ def pack_tensor(new_tensor, packed_tensor, max_seq_len):
 def train(dataset, model, tokenizer,
         batch_size = 16, epochs = EPOCHS,
         learning_rate = 2e-5, max_seq_len = 768,
-        warmup_steps = 5000, gpt2_type = MODEL_TYPE,
-        output_dir = '.', output_prefix = 'character_generation',
-        test_mode = False, save_model_on_epoch = False):
+        warmup_steps = 50, output_dir = '.', 
+        output_prefix = 'character_generation',
+        save_model_on_epoch = False):
     ''' Training loop. 
 
     Parameters
     ----------
+    dataset : torch.Dataset 
+        Dataset to train on. 
+    model : transformer.GPT2LMHeadModel
+        Model to train. 
+    tokenizer : transformers.GPT2Tokenizer
+        Tokenizer for the data. 
+    batch_size : int 
+        Batch size when looping through mini batches.
+    epochs : int
+        Number of epochs.
+    learning_rate : float
+        Initial learning rate. 
+    max_seq_len : int
+        Maximum sequence length for the packed tensors. 
+    warmup_steps : int 
+        Number of warump steps for the scheduler. 
+    output_dir : str
+        Output directory to save the model in (if applicable).
+    output_prefix : str
+        Prefix for the saved model filename.
+    save_model_on_epoch : bool 
+        Whether to save the model after each epoch. 
 
     Returns 
     -------
+    transformer.GPT2LMHeadModel 
+        The fine tuned GPT2 model. 
     '''
     
     # send model to the gpu (if available) and then set model to training mode
@@ -147,7 +171,7 @@ def train(dataset, model, tokenizer,
             loss = outputs[0]
             loss.backward()
 
-            if (((batch_idx + 1) == 0) or (batch_idx + 1) == len(train_dataloader)):
+            if (((batch_idx + 1) % batch_size == 0) or (batch_idx + 1) == len(train_dataloader)):
                 optimizer.step()
                 scheduler.step()
                 optimizer.zero_grad()
