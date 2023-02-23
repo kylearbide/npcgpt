@@ -56,11 +56,11 @@ class BioDataset(Dataset):
                 is_start = np.random.randint((len(bio_tokens) - max_length))
                 bio_tokens = bio_tokens[is_start:(is_start + max_length)]
             
-            self.bios.append(torch.Tensor([
+            self.bios.append(torch.LongTensor([
                 self.tokenizer.bos_token_id,
                 *self.tokenizer.convert_tokens_to_ids(bio_tokens),
-                self.tokenizer.eos_token_id
-            ]))
+                self.tokenizer.eos_token_id])
+            )
         
         self.bios_count = len(self.bios)
     
@@ -84,7 +84,7 @@ class BioDataset(Dataset):
 
         Returns 
         -------
-        torch.Tensor
-            Returns bio at a at the specified index. 
+        (int, torch.Tensor)
+            Index of the item to be returned. Bio at the specified index. 
         '''
         return idx, self.bios[idx]

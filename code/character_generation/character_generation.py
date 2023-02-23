@@ -80,8 +80,7 @@ def pack_tensor(new_tensor, packed_tensor, max_seq_len):
     if new_tensor.size()[1] + packed_tensor.size()[1] > max_seq_len:
         return packed_tensor, False, new_tensor
     else:
-        # [:, 1:]
-        packed_tensor = torch.cat([new_tensor, packed_tensor], dim = 1)
+        packed_tensor = torch.cat([new_tensor, packed_tensor[:, 1:]], dim = 1)
         return packed_tensor, True, None 
 
 def train(dataset, model, tokenizer,
@@ -112,10 +111,9 @@ def train(dataset, model, tokenizer,
     for epoch in range(epochs):
 
         print(f'Epoch: {epoch + 1}/{EPOCHS}')
-        
         optimizer.zero_grad()
         loss = 0
-        input_tensor = None 
+        input_tensor = None
         losses = []
         accumulate = torch.zeros(len(train_dataloader), dtype = torch.bool)
 
@@ -127,7 +125,7 @@ def train(dataset, model, tokenizer,
             (input_tensor, carry_on, remainder) = pack_tensor(entry, input_tensor, max_seq_len)
 
             # debugging 
-            # print(f'\nBatch {batch_idx} ----------------------------------------')
+            # print(f'\nBatch {batch_idx}----------------------------------------')
             # print(f'idx: {idx}')
             # print(f'Entry shape: {entry.shape}')
             # print(f'Entry: {entry}')
@@ -143,13 +141,13 @@ def train(dataset, model, tokenizer,
 
             if carry_on and ((batch_idx + 1) != len(train_dataloader)):
                 continue
-
+            
             input_tensor = input_tensor.to(DEVICE)
             outputs = model(input_tensor, labels = input_tensor)
             loss = outputs[0]
             loss.backward()
 
-            if (((batch_idx + 1) % batch_size) == 0) or ((batch_idx + 1) == len(train_dataloader)):
+            if (((batch_idx + 1) == 0) or (batch_idx + 1) == len(train_dataloader)):
                 optimizer.step()
                 scheduler.step()
                 optimizer.zero_grad()
@@ -157,24 +155,18 @@ def train(dataset, model, tokenizer,
             
             input_tensor = remainder
             losses.append(loss.detach().cpu().item())
+        
+        print(f'Average loss: {np.mean(losses)} in epoch {epoch}')
 
-            print(f'Average loss: {np.mean(losses)} for epoch {epoch}')
-
-            if save_model_on_epoch:
-                print(f'Saving epoch {epoch} state')
-                torch.save({
-                    'epoch' : epoch,
-                    'accumulated_batches' : batch_size,
-                    'learning_rate' : learning_rate, 
-                    'max_seq_len' : max_seq_len,
-                    'state_dict' : model.state_dict(),
-                    'losses' : losses,
-                    'accumulate' : accumulate},
-                    os.path.join(output_dir, f'{output_prefix}-{epoch}.torch')   
-                )
+        if save_model_on_epoch:
+            print(f'Saving epoch {epoch} state')
+            torch.save(
+                model.state_dict(),
+                os.path.join(output_dir, f'{output_prefix}-{epoch}.pt')
+            )
         
         # debugging 
-        # if count == 3:
+        # if count >= 1:
         #     break
     
     return model 
