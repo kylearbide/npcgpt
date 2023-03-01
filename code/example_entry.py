@@ -108,3 +108,15 @@ EXAMPLE_ENTRY = {
          },
     ]
 }
+
+
+words, segments, position, sequence = build_inputs(persona, history, reply, 1)
+
+# Tokenize
+words = tokenizer.convert_tokens_to_ids(words)
+segments = tokenizer.convert_tokens_to_ids(segments)
+
+# Build & tokenize inputs ending with our distractor like we did with the gold reply
+words_distractor, segments_distractor, _, _ = build_inputs(persona, history, distractor, 1)
+words_distractor = tokenizer.convert_tokens_to_ids(words_distractor)
+segments_distractor = tokenizer.convert_tokens_to_ids(segments_distractor)
