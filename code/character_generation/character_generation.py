@@ -13,7 +13,7 @@ from bio_dataset import BioDataset
 delimiter = re.compile(r'\s+')
 TEST_SET_SIZE = 0.15
 MODEL_TYPE = 'gpt2'
-EPOCHS = 5
+EPOCHS = 10
 
 cuda = torch.cuda.is_available()
 if cuda:
@@ -80,6 +80,7 @@ def pack_tensor(new_tensor, packed_tensor, max_seq_len):
     if new_tensor.size()[1] + packed_tensor.size()[1] > max_seq_len:
         return packed_tensor, False, new_tensor
     else:
+        # eos and bos tokens are the same, only need one between sentences
         packed_tensor = torch.cat([new_tensor, packed_tensor[:, 1:]], dim = 1)
         return packed_tensor, True, None 
 
@@ -196,3 +197,73 @@ def train(dataset, model, tokenizer,
     return model 
             
 model = train(dataset, model, tokenizer)
+
+def test(
+        model, tokenizer,
+        prompt, bio_length = 60,
+        top_p = 0.85, temperature = 1.00):
+    ''' Test loop. 
+
+    Parameters
+    ----------
+    model : transformer.GPT2LMHeadModel
+        Model to test.
+    tokenizer : transformers.GPT2Tokenizer
+        Tokenizer for the data.
+    prompt : str
+        The beginning of the test bio to test on.
+    bio_length : int 
+        The maximum number of words to make the bio. 
+    top_p : float 
+        Percentage value controlling the diversity of the generated text. Once the 
+        cumulative distribution is generated, it is cut off once the CDF exceeds top_p. 
+    temperature : float 
+        Used to control the randomness of the generated tokens. 
+    
+    Returns
+    -------
+
+    '''
+
+    model.eval()
+
+    # filter value to eliminate everything that falls outside our top_prob 
+    filter = -float('inf')
+
+    with torch.inference_mode():
+
+        finished = False 
+
+        # tokenize the prompt 
+        prompt_toks_ids = torch.tensor(tokenizer.encode(prompt), device = model.device).unsqueeze(0)
+        # number of tokens
+        num_token_ids = prompt_toks_ids.shape[-1]
+
+        for word in range(bio_length):
+
+            # get prediction for the next word 
+            outputs = model(prompt_toks_ids, labels = prompt_toks_ids).to_tuple()
+            # unpack the output
+            loss = outputs[0]
+            logits = outputs[1] 
+            # test
+            hidden_state = outputs[2]
+            # slice just the predictions for the last word and then divide by the temperature  
+            logits = logits[:, -1, :] / (temperature if temperature > 0 else 1.0)
+
+            # sort the logits for the most likely first 
+            sorted_logits, sorted_indices = torch.sort(logits, descending = True) 
+            # apply the softmax function to the logits to convert them to probabilties
+            # then apply the cumulative sum function along the column 
+            cum_probs = torch.cumsum(F.softmax(sorted_logits, dim = -1), dim = -1)
+
+            # indices to remove 
+            remove_indices = cum_probs > top_p
+            remove_indices[..., 1:] = remove_indices[..., -1].clone() 
+            remove_indices[..., 0] = 0 
+            # use `remove_indices` as a boolean mask on the sorted indices 
+            indices_to_remove = sorted_indices[remove_indices]
+            # replace the selected logits to be removed with the filter value (-inf)
+            logits[:, indices_to_remove] = filter 
+
+            
