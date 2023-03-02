@@ -13,7 +13,7 @@ from bio_dataset import BioDataset
 delimiter = re.compile(r'\s+')
 TEST_SET_SIZE = 0.15
 MODEL_TYPE = 'gpt2'
-EPOCHS = 10
+EPOCHS = 5
 
 cuda = torch.cuda.is_available()
 if cuda:
@@ -46,7 +46,7 @@ train_set.reset_index(drop = True, inplace = True)
 assert character_bios.shape[0] == (train_set.shape[0] + test_set.shape[0])
 # for the test set only, keep last 15 words in a new column and remove from original bio column
 test_set.insert(test_set.shape[1], 'true_bio_end', test_set.bio_tokens.str[-15:].apply(' '.join))
-test_set.loc['bio'] = test_set.bio_tokens.str[:-15].apply(' '.join)
+test_set.loc[:,'bio'] = test_set.bio_tokens.str[:-15].apply(' '.join)
 
 ### train set
 dataset = BioDataset(train_set.bio, gpt2_type = MODEL_TYPE)
@@ -236,7 +236,7 @@ def test(
 
         # tokenize the prompt 
         prompt_toks_ids = torch.tensor(tokenizer.encode(prompt), device = model.device).unsqueeze(0)
-        # number of tokens
+        # number of tokens in the prompt 
         num_token_ids = prompt_toks_ids.shape[-1]
 
         for word in range(bio_length):
@@ -274,14 +274,16 @@ def test(
             # concatenate the new predicted token id to the original encoded prompt 
             prompt_toks_ids = torch.cat((prompt_toks_ids, next_token), dim = 1)
 
+            # boolean to determine if the bio has finished or not 
             finished = (next_token.item() == tokenizer.eos_token_id)
             if finished:
                 break 
         
         num_generated = (prompt_toks_ids.shape[-1] - num_token_ids)
-        print(f'sanity check: {num_generated == (word + 1)}')
+        # print(f'sanity check: {num_generated == (word + 1)}')
 
         output_list = list(prompt_toks_ids.cpu().squeeze().numpy())
+        # only grab the generated text 
         generated_list = output_list[-num_generated:]
         generated_text = f"{tokenizer.decode(generated_list)}{'' if finished else tokenizer.eos_token}"
     
@@ -293,5 +295,4 @@ for i in trange(test_set.shape[0], leave = False):
     generated_bios[i] = test(model, tokenizer, test_set.bio.iloc[i])
 
 test_set.insert(test_set.shape[1], 'generated_bio', generated_bios)
-
-            
+test_set.to_csv('test.csv')
