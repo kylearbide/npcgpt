@@ -80,7 +80,7 @@ def pack_tensor(new_tensor, packed_tensor, max_seq_len):
     if new_tensor.size()[1] + packed_tensor.size()[1] > max_seq_len:
         return packed_tensor, False, new_tensor
     else:
-        # eos and bos tokens are the same, only need one between sentences
+        # eos and bos tokens are the same, only need one between sequences
         packed_tensor = torch.cat([new_tensor, packed_tensor[:, 1:]], dim = 1)
         return packed_tensor, True, None 
 
@@ -257,13 +257,41 @@ def test(
             # then apply the cumulative sum function along the column 
             cum_probs = torch.cumsum(F.softmax(sorted_logits, dim = -1), dim = -1)
 
-            # indices to remove 
+            # creates a boolean tensor to indicate which indices to set to the filter value 
             remove_indices = cum_probs > top_p
-            remove_indices[..., 1:] = remove_indices[..., -1].clone() 
+            # we never want to remove the first token as to not have an empty tensor causing an error 
+            # shift the values to the right (last indices will always be greater than top_p since it equals 1)
+            remove_indices[..., 1:] = remove_indices[..., :-1].clone() 
+            # set the first indices to False (0) so it will never get dropped 
             remove_indices[..., 0] = 0 
             # use `remove_indices` as a boolean mask on the sorted indices 
             indices_to_remove = sorted_indices[remove_indices]
             # replace the selected logits to be removed with the filter value (-inf)
             logits[:, indices_to_remove] = filter 
+
+            # after the correct filter values have been assigned, re-compute the probabilities and then sample one
+            next_token = torch.multinomial(F.softmax(logits, dim = -1), num_samples = 1)
+            # concatenate the new predicted token id to the original encoded prompt 
+            prompt_toks_ids = torch.cat((prompt_toks_ids, next_token), dim = 1)
+
+            finished = (next_token.item() == tokenizer.eos_token_id)
+            if finished:
+                break 
+        
+        num_generated = (prompt_toks_ids.shape[-1] - num_token_ids)
+        print(f'sanity check: {num_generated == (word + 1)}')
+
+        output_list = list(prompt_toks_ids.cpu().squeeze().numpy())
+        generated_list = output_list[-num_generated:]
+        generated_text = f"{tokenizer.decode(generated_list)}{'' if finished else tokenizer.eos_token}"
+    
+    return generated_text
+
+# generate bios for the test set 
+generated_bios = [''] * test_set.shape[0]
+for i in trange(test_set.shape[0], leave = False):
+    generated_bios[i] = test(model, tokenizer, test_set.bio.iloc[i])
+
+test_set.insert(test_set.shape[1], 'generated_bio', generated_bios)
 
             
