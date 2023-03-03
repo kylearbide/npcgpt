@@ -46,7 +46,7 @@ train_set.reset_index(drop = True, inplace = True)
 assert character_bios.shape[0] == (train_set.shape[0] + test_set.shape[0])
 # for the test set only, keep last 15 words in a new column and remove from original bio column
 test_set.insert(test_set.shape[1], 'true_bio_end', test_set.bio_tokens.str[-15:].apply(' '.join))
-test_set.loc['bio'] = test_set.bio_tokens.str[:-15].apply(' '.join)
+test_set.loc[:,'bio'] = test_set.bio_tokens.str[:-15].apply(' '.join)
 
 ### train set
 dataset = BioDataset(train_set.bio, gpt2_type = MODEL_TYPE)
@@ -80,6 +80,7 @@ def pack_tensor(new_tensor, packed_tensor, max_seq_len):
     if new_tensor.size()[1] + packed_tensor.size()[1] > max_seq_len:
         return packed_tensor, False, new_tensor
     else:
+        # eos and bos tokens are the same, only need one between sequences
         packed_tensor = torch.cat([new_tensor, packed_tensor[:, 1:]], dim = 1)
         return packed_tensor, True, None 
 
@@ -196,3 +197,102 @@ def train(dataset, model, tokenizer,
     return model 
             
 model = train(dataset, model, tokenizer)
+
+def test(
+        model, tokenizer,
+        prompt, bio_length = 60,
+        top_p = 0.85, temperature = 1.00):
+    ''' Test loop. 
+
+    Parameters
+    ----------
+    model : transformer.GPT2LMHeadModel
+        Model to test.
+    tokenizer : transformers.GPT2Tokenizer
+        Tokenizer for the data.
+    prompt : str
+        The beginning of the test bio to test on.
+    bio_length : int 
+        The maximum number of words to make the bio. 
+    top_p : float 
+        Percentage value controlling the diversity of the generated text. Once the 
+        cumulative distribution is generated, it is cut off once the CDF exceeds top_p. 
+    temperature : float 
+        Used to control the randomness of the generated tokens. 
+    
+    Returns
+    -------
+
+    '''
+
+    model.eval()
+
+    # filter value to eliminate everything that falls outside our top_prob 
+    filter = -float('inf')
+
+    with torch.inference_mode():
+
+        finished = False 
+
+        # tokenize the prompt 
+        prompt_toks_ids = torch.tensor(tokenizer.encode(prompt), device = model.device).unsqueeze(0)
+        # number of tokens in the prompt 
+        num_token_ids = prompt_toks_ids.shape[-1]
+
+        for word in range(bio_length):
+
+            # get prediction for the next word 
+            outputs = model(prompt_toks_ids, labels = prompt_toks_ids).to_tuple()
+            # unpack the output
+            loss = outputs[0]
+            logits = outputs[1] 
+            # test
+            hidden_state = outputs[2]
+            # slice just the predictions for the last word and then divide by the temperature  
+            logits = logits[:, -1, :] / (temperature if temperature > 0 else 1.0)
+
+            # sort the logits for the most likely first 
+            sorted_logits, sorted_indices = torch.sort(logits, descending = True) 
+            # apply the softmax function to the logits to convert them to probabilties
+            # then apply the cumulative sum function along the column 
+            cum_probs = torch.cumsum(F.softmax(sorted_logits, dim = -1), dim = -1)
+
+            # creates a boolean tensor to indicate which indices to set to the filter value 
+            remove_indices = cum_probs > top_p
+            # we never want to remove the first token as to not have an empty tensor causing an error 
+            # shift the values to the right (last indices will always be greater than top_p since it equals 1)
+            remove_indices[..., 1:] = remove_indices[..., :-1].clone() 
+            # set the first indices to False (0) so it will never get dropped 
+            remove_indices[..., 0] = 0 
+            # use `remove_indices` as a boolean mask on the sorted indices 
+            indices_to_remove = sorted_indices[remove_indices]
+            # replace the selected logits to be removed with the filter value (-inf)
+            logits[:, indices_to_remove] = filter 
+
+            # after the correct filter values have been assigned, re-compute the probabilities and then sample one
+            next_token = torch.multinomial(F.softmax(logits, dim = -1), num_samples = 1)
+            # concatenate the new predicted token id to the original encoded prompt 
+            prompt_toks_ids = torch.cat((prompt_toks_ids, next_token), dim = 1)
+
+            # boolean to determine if the bio has finished or not 
+            finished = (next_token.item() == tokenizer.eos_token_id)
+            if finished:
+                break 
+        
+        num_generated = (prompt_toks_ids.shape[-1] - num_token_ids)
+        # print(f'sanity check: {num_generated == (word + 1)}')
+
+        output_list = list(prompt_toks_ids.cpu().squeeze().numpy())
+        # only grab the generated text 
+        generated_list = output_list[-num_generated:]
+        generated_text = f"{tokenizer.decode(generated_list)}{'' if finished else tokenizer.eos_token}"
+    
+    return generated_text
+
+# generate bios for the test set 
+generated_bios = [''] * test_set.shape[0]
+for i in trange(test_set.shape[0], leave = False):
+    generated_bios[i] = test(model, tokenizer, test_set.bio.iloc[i])
+
+test_set.insert(test_set.shape[1], 'generated_bio', generated_bios)
+test_set.to_csv('test.csv')
