@@ -4,7 +4,8 @@ import os
 import torch
 from pprint import pformat
 from torch.utils.data import DataLoader, TensorDataset
-from transformers import AutoTokenizer, AutoModelForCausalLM, AdamW, CONFIG_NAME, WEIGHTS_NAME
+from transformers import (AutoTokenizer, AutoModelForCausalLM, AdamW, CONFIG_NAME, WEIGHTS_NAME, 
+                          GPT2DoubleHeadsModel, GPT2Tokenizer)
 from itertools import chain
 from argparse import ArgumentParser
 from ignite.engine import Engine, Events
@@ -200,7 +201,7 @@ def train():
     parser.add_argument("--lm_coef", type=float, default=1.0, help="LM loss coefficient")
     parser.add_argument("--mc_coef", type=float, default=1.0, help="Multiple-choice loss coefficient")
     parser.add_argument("--max_norm", type=float, default=1.0, help="Clipping gradient norm")
-    parser.add_argument("--n_epochs", type=int, default=3, help="Number of training epochs")
+    parser.add_argument("--n_epochs", type=int, default=1, help="Number of training epochs")
     parser.add_argument("--personality_permutations", type=int, default=1, help="Number of permutations of personality sentences")
     parser.add_argument("--eval_before_start", action='store_true', help="If true start with a first evaluation before training")
     parser.add_argument("--device", type=str, default="cuda" if torch.cuda.is_available() else "cpu", help="Device (cuda or cpu)")
@@ -209,11 +210,14 @@ def train():
     parser.add_argument("--model_checkpoint", type=str, default="../log", help="Path, url or short name for logging")
     args = parser.parse_args()
 
-    checkpoint = "bigscience/bloom-1b7"
+    checkpoint = "gpt2"
     device = "cuda:0" if torch.cuda.is_available() else "cpu"
 
-    tokenizer = AutoTokenizer.from_pretrained(checkpoint, device=device)
-    model = AutoModelForCausalLM.from_pretrained(checkpoint, device_map="auto", torch_dtype=torch.float16, offload_folder="offload")
+    # tokenizer = AutoTokenizer.from_pretrained(checkpoint, device=device)
+    # model = AutoModelForCausalLM.from_pretrained(checkpoint, device_map="auto", torch_dtype=torch.float16, offload_folder="offload")
+    tokenizer = GPT2Tokenizer.from_pretrained(checkpoint, device=device)
+    model = GPT2DoubleHeadsModel.from_pretrained(checkpoint, device_map="auto")
+    
     # Add special tokens
     print("Adding Special Tokens")
     add_special_tokens(model, tokenizer, ATTR_TO_SPECIAL_TOKEN)
@@ -230,11 +234,12 @@ def train():
         model.train()
         batch = tuple(input_tensor.to(args.device) for input_tensor in batch)
         input_ids, mc_token_ids, lm_labels, mc_labels, token_type_ids = batch
-        (lm_loss), (mc_loss), *_ = model(
+        
+        output = model(
             input_ids, token_type_ids=token_type_ids, mc_token_ids=mc_token_ids,
-            mc_labels=mc_labels, lm_labels=lm_labels
+            mc_labels=mc_labels, labels=lm_labels
         )
-        loss = (lm_loss * args.lm_coef + mc_loss * args.mc_coef) / args.gradient_accumulation_steps
+        loss = (output.loss * args.lm_coef + output.mc_loss * args.mc_coef) / args.gradient_accumulation_steps
         loss.backward()
         torch.nn.utils.clip_grad_norm_(model.parameters(), args.max_norm)
         if engine.state.iteration % args.gradient_accumulation_steps == 0:
@@ -251,12 +256,12 @@ def train():
             input_ids, mc_token_ids, lm_labels, mc_labels, token_type_ids = batch
             # logger.info(tokenizer.decode(input_ids[0, -1, :].tolist()))
             # if we dont send labels to model, it doesnt return losses
-            lm_logits, mc_logits, *_ = model(
+            output = model(
                 input_ids, token_type_ids=token_type_ids, mc_token_ids=mc_token_ids,
             )
-            lm_logits_flat_shifted = lm_logits[..., :-1, :].contiguous().view(-1, lm_logits.size(-1))
+            lm_logits_flat_shifted = output.logits[..., :-1, :].contiguous().view(-1, output.logits.size(-1))
             lm_labels_flat_shifted = lm_labels[..., 1:].contiguous().view(-1)
-            return (lm_logits_flat_shifted, mc_logits), (lm_labels_flat_shifted, mc_labels)
+            return (lm_logits_flat_shifted, output.mc_logits), (lm_labels_flat_shifted, mc_labels)
     evaluator = Engine(inference)
 
     # Attach evaluation to trainer: we evaluate when we start the training and at the end of each epoch
@@ -302,7 +307,6 @@ def train():
 
     # Run the training
     print("Run training")
-    print(torch.is_tensor(train_loader))
     trainer.run(train_loader, max_epochs=args.n_epochs)
 
     # On the main process: close tensorboard logger and rename the last checkpoint 
