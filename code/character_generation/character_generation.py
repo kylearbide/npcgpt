@@ -13,7 +13,7 @@ from bio_dataset import BioDataset
 delimiter = re.compile(r'\s+')
 TEST_SET_SIZE = 0.15
 MODEL_TYPE = 'gpt2'
-EPOCHS = 5
+EPOCHS = 10
 
 cuda = torch.cuda.is_available()
 if cuda:
