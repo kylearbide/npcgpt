@@ -44,9 +44,9 @@ test_set.reset_index(drop = True, inplace = True)
 train_set.reset_index(drop = True, inplace = True)
 # check everything worked correctly 
 assert character_bios.shape[0] == (train_set.shape[0] + test_set.shape[0])
-# for the test set only, keep last 15 words in a new column and remove from original bio column
-test_set.insert(test_set.shape[1], 'true_bio_end', test_set.bio_tokens.str[-15:].apply(' '.join))
-test_set.loc[:,'bio'] = test_set.bio_tokens.str[:-15].apply(' '.join)
+# for the test set only, keep last 40 words in a new column and remove from original bio column
+test_set.insert(test_set.shape[1], 'true_bio_end', test_set.bio_tokens.str[-35:].apply(' '.join))
+test_set.loc[:,'bio'] = test_set.bio_tokens.str[:-35].apply(' '.join)
 
 ### train set
 dataset = BioDataset(train_set.bio, gpt2_type = MODEL_TYPE)
@@ -87,7 +87,7 @@ def pack_tensor(new_tensor, packed_tensor, max_seq_len):
 def train(dataset, model, tokenizer,
         batch_size = 16, epochs = EPOCHS,
         learning_rate = 2e-5, max_seq_len = 768,
-        warmup_steps = 50, output_dir = '.', 
+        warmup_steps = 100, output_dir = '.', 
         output_prefix = 'character_generation',
         save_model_on_epoch = False):
     ''' Training loop. 
@@ -201,7 +201,7 @@ model = train(dataset, model, tokenizer)
 def test(
         model, tokenizer,
         prompt, bio_length = 60,
-        top_p = 0.85, temperature = 1.00):
+        top_p = 0.8, temperature = 1.00):
     ''' Test loop. 
 
     Parameters
