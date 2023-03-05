@@ -44,7 +44,7 @@ test_set.reset_index(drop = True, inplace = True)
 train_set.reset_index(drop = True, inplace = True)
 # check everything worked correctly 
 assert character_bios.shape[0] == (train_set.shape[0] + test_set.shape[0])
-# for the test set only, keep last 40 words in a new column and remove from original bio column
+# for the test set only, keep last 35 words in a new column and remove from original bio column
 test_set.insert(test_set.shape[1], 'true_bio_end', test_set.bio_tokens.str[-35:].apply(' '.join))
 test_set.loc[:,'bio'] = test_set.bio_tokens.str[:-35].apply(' '.join)
 
@@ -87,7 +87,7 @@ def pack_tensor(new_tensor, packed_tensor, max_seq_len):
 def train(dataset, model, tokenizer,
         batch_size = 16, epochs = EPOCHS,
         learning_rate = 2e-5, max_seq_len = 768,
-        warmup_steps = 140, output_dir = 'code/models/', 
+        warmup_steps = 200, output_dir = 'code/models/', 
         output_prefix = 'character_generation',
         save_model_on_epoch = False):
     ''' Training loop. 

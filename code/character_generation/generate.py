@@ -4,7 +4,7 @@ import os
 import random 
 import torch 
 import torch.nn.functional as F
-from transformers import GPT2LMHeadModel, GPT2Tokenizer
+from transformers import GPT2Tokenizer
 
 gpt2_type = 'gpt2'
 tokenizer = GPT2Tokenizer.from_pretrained(gpt2_type)
@@ -30,7 +30,7 @@ model = model.to(DEVICE)
 def generate(
     model, tokenizer,
     prompt, bio_length = 60,
-    top_p = 0.85, temperature = 1.10):
+    top_p = 0.8, temperature = 1.15):
     '''
     '''
 
@@ -72,4 +72,4 @@ def generate(
 
     return generated_text
 
-print(generate(model, tokenizer, seed_data.seed.iloc[seed]))
+print(generate(model, tokenizer, f'{seed_data.seed.iloc[seed]} a fun and outoing'))
