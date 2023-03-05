@@ -133,3 +133,6 @@ dmypy.json
 
 */personachat/*
 *log/
+
+# model 
+character_bio_generation.pt
