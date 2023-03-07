@@ -13,7 +13,7 @@ from bio_dataset import BioDataset
 delimiter = re.compile(r'\s+')
 TEST_SET_SIZE = 0.15
 MODEL_TYPE = 'gpt2'
-EPOCHS = 10
+EPOCHS = 15
 
 cuda = torch.cuda.is_available()
 if cuda:
@@ -44,7 +44,7 @@ test_set.reset_index(drop = True, inplace = True)
 train_set.reset_index(drop = True, inplace = True)
 # check everything worked correctly 
 assert character_bios.shape[0] == (train_set.shape[0] + test_set.shape[0])
-# for the test set only, keep last 40 words in a new column and remove from original bio column
+# for the test set only, keep last 35 words in a new column and remove from original bio column
 test_set.insert(test_set.shape[1], 'true_bio_end', test_set.bio_tokens.str[-35:].apply(' '.join))
 test_set.loc[:,'bio'] = test_set.bio_tokens.str[:-35].apply(' '.join)
 
@@ -87,7 +87,7 @@ def pack_tensor(new_tensor, packed_tensor, max_seq_len):
 def train(dataset, model, tokenizer,
         batch_size = 16, epochs = EPOCHS,
         learning_rate = 2e-5, max_seq_len = 768,
-        warmup_steps = 100, output_dir = '.', 
+        warmup_steps = 200, output_dir = 'code/models/', 
         output_prefix = 'character_generation',
         save_model_on_epoch = False):
     ''' Training loop. 
@@ -181,10 +181,10 @@ def train(dataset, model, tokenizer,
             input_tensor = remainder
             losses.append(loss.detach().cpu().item())
         
-        print(f'Average loss: {np.mean(losses)} in epoch {epoch}')
+        print(f'Average loss: {np.mean(losses)} in epoch {epoch + 1}')
 
         if save_model_on_epoch:
-            print(f'Saving epoch {epoch} state')
+            print(f'Saving epoch {epoch + 1} state')
             torch.save(
                 model.state_dict(),
                 os.path.join(output_dir, f'{output_prefix}-{epoch}.pt')
@@ -196,7 +196,8 @@ def train(dataset, model, tokenizer,
     
     return model 
             
-model = train(dataset, model, tokenizer)
+model = train(dataset, model, tokenizer, save_model_on_epoch = False)
+torch.save(model, 'code/models/character_bio_generation.pt')
 
 def test(
         model, tokenizer,
@@ -222,7 +223,8 @@ def test(
     
     Returns
     -------
-
+    str
+        The generated string. 
     '''
 
     model.eval()

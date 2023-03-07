@@ -133,3 +133,9 @@ dmypy.json
 
 */personachat/*
 *log/
+
+# character generation ignores
+# ignore due to size  
+character_bio_generation.pt
+# ignore because it is just a testing file 
+test.csv
