@@ -139,3 +139,9 @@ dmypy.json
 character_bio_generation.pt
 # ignore because it is just a testing file 
 test.csv
+
+# ignore all conversational models
+*/conversational/models/*
+
+# ignore dialogue datasets
+*/dialogue_datasets/*
