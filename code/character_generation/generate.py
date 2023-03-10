@@ -1,3 +1,5 @@
+### test file to generate individual bios
+
 import numpy as np 
 import pandas as pd 
 import os 
@@ -72,4 +74,4 @@ def generate(
 
     return generated_text
 
-print(generate(model, tokenizer, f'{seed_data.seed.iloc[seed]} a fun and outoing'))
+print(generate(model, tokenizer, f'{seed_data.name.iloc[seed]} is a fun and outoing'))
