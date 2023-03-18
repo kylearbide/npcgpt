@@ -7,6 +7,7 @@ import random
 import torch 
 import torch.nn.functional as F
 from transformers import GPT2Tokenizer
+import spacy 
 
 gpt2_type = 'gpt2'
 tokenizer = GPT2Tokenizer.from_pretrained(gpt2_type)
@@ -19,11 +20,45 @@ if cuda:
 # read in seed data 
 seed_data = pd.read_csv('data/bio_seed_data.csv')
 
-# number of seed prompts 
-num_seeds = seed_data.shape[0]
+# number of names
+num_names = seed_data.name.shape[0]
+# pick a random name 
+name_seed = random.randint(0, num_names - 1)
 
-# pick a random seed 
-seed = random.randint(0, num_seeds - 1)
+# get adjectives in a list 
+adjs = list(seed_data.adjective.dropna())
+# number of adjectives 
+num_adjs = len(adjs)
+
+nlp = spacy.load('en_core_web_md')
+
+adj_one = ''
+adj_two = ''
+adj_one_idx = -1
+adj_two_idx = -1
+repick = True 
+
+while repick:
+    adj_one_idx = random.randint(0, num_adjs - 1)
+    adj_two_idx = random.randint(0, num_adjs - 1)
+    adj_one = adjs[adj_one_idx]
+    adj_two = adjs[adj_two_idx]
+
+    if adj_one_idx == adj_two_idx:
+        continue 
+
+    adj_one_nlp = nlp(adj_one)
+    adj_two_nlp = nlp(adj_two)
+    sim_score = adj_one_nlp.similarity(adj_two_nlp)
+
+    print(adj_one)
+    print(adj_two)
+    print(sim_score)
+    
+    if sim_score >= 0.2:
+        repick = False 
+    else:
+        continue 
 
 # load in model 
 model = torch.load('code/models/character_bio_generation.pt')
@@ -33,8 +68,6 @@ def generate(
     model, tokenizer,
     prompt, bio_length = 60,
     top_p = 0.8, temperature = 1.15):
-    '''
-    '''
 
     model.eval()
     filter = -float('inf')
@@ -74,4 +107,4 @@ def generate(
 
     return generated_text
 
-print(generate(model, tokenizer, f'{seed_data.name.iloc[seed]} is a fun and outoing'))
+print(generate(model, tokenizer, f'{seed_data.name.iloc[name_seed]} is a {adj_one.lower()} and {adj_two.lower()}'))
