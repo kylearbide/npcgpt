@@ -90,7 +90,7 @@ def create_multiple_choice(candidates:list,true_dialogue:str) -> list:
     return({'candidates':choices})
 
 
-with open("../../data/data.json", "r") as f:
+with open("../../data/dialogue_datasets/data.json", "r") as f:
     data = json.load(f)
 # Get a dictionary of the character bios
 bios_dict = get_bios()
