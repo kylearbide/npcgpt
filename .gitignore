@@ -145,3 +145,6 @@ test.csv
 
 # ignore dialogue datasets
 */dialogue_datasets/*
+
+# ignore configs
+config.json
