@@ -1,5 +1,3 @@
-### test file to generate individual bios
-
 import numpy as np 
 import pandas as pd 
 import os 
@@ -51,9 +49,9 @@ while repick:
     adj_two_nlp = nlp(adj_two)
     sim_score = adj_one_nlp.similarity(adj_two_nlp)
 
-    print(adj_one)
-    print(adj_two)
-    print(sim_score)
+    # print(adj_one)
+    # print(adj_two)
+    # print(sim_score)
     
     if sim_score >= 0.2:
         repick = False 
