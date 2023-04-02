@@ -4,7 +4,7 @@ import subprocess
 import sys 
 
 def run_script(path):
-    command = [sys.executable, path, str(100)]
+    command = [sys.executable, path, str(1)]
     output = subprocess.check_output(command)
     return output.decode('utf-8')
 
