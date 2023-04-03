@@ -189,8 +189,8 @@ def pad_dataset(dataset, padding=0):
 
 def train():
     parser = ArgumentParser()
-    parser.add_argument("--train_path", type=str, default="../../data/dialogue_train.jsonl", help="Path or url of the dataset.")
-    parser.add_argument("--eval_path", type=str, default="../../data/dialogue_test.jsonl", help="Path or url of the dataset.")
+    parser.add_argument("--train_path", type=str, default="../../data/dialogue_datasets/chatgpt_train.jsonl", help="Path or url of the dataset.")
+    parser.add_argument("--eval_path", type=str, default="../../data/dialogue_datasets/chatgpt_test.jsonl", help="Path or url of the dataset.")
     parser.add_argument("--num_candidates", type=int, default=2, help="Number of candidates for training")
     parser.add_argument("--max_history", type=int, default=2, help="Number of previous exchanges to keep in history")
     parser.add_argument("--train_batch_size", type=int, default=1, help="Batch size for training")
@@ -200,16 +200,16 @@ def train():
     parser.add_argument("--lm_coef", type=float, default=1.0, help="LM loss coefficient")
     parser.add_argument("--mc_coef", type=float, default=1.0, help="Multiple-choice loss coefficient")
     parser.add_argument("--max_norm", type=float, default=1.0, help="Clipping gradient norm")
-    parser.add_argument("--n_epochs", type=int, default=1, help="Number of training epochs")
+    parser.add_argument("--n_epochs", type=int, default=3, help="Number of training epochs")
     parser.add_argument("--personality_permutations", type=int, default=1, help="Number of permutations of personality sentences")
     parser.add_argument("--eval_before_start", action='store_true', help="If true start with a first evaluation before training")
     parser.add_argument("--device", type=str, default="cuda" if torch.cuda.is_available() else "cpu", help="Device (cuda or cpu)")
     parser.add_argument("--fp16", type=str, default="", help="Set to O0, O1, O2 or O3 for fp16 training (see apex documentation)")
     parser.add_argument("--local_rank", type=int, default=-1, help="Local rank for distributed training (-1: not distributed)")
-    parser.add_argument("--model_checkpoint", type=str, default="../dialoGPTLarge", help="Path, url or short name for logging")
+    parser.add_argument("--model_checkpoint", type=str, default="./models/dialoGPT", help="Path, url or short name for logging")
     args = parser.parse_args()
 
-    checkpoint = "microsoft/DialoGPT-medium"
+    checkpoint = "microsoft/DialoGPT-small"
     device = "cuda:0" if torch.cuda.is_available() else "cpu"
 
     # tokenizer = AutoTokenizer.from_pretrained(checkpoint, device=device)
