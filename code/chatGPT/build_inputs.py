@@ -1,8 +1,27 @@
 import pandas as pd
 import re
 import nltk
+import json
+import random
+from sklearn.model_selection import train_test_split
 
 personalities = pd.read_csv("../../data/generative_model_output.csv")
+samples = []
+with open("../../data/dialogue_datasets/chatgpt_convos.jsonl", "r") as f:
+    lines = f.readlines()
+    for line in lines:
+        samples.append(json.loads(line))
+
+with open("../../data/dialogue_datasets/kb_convos.jsonl", "r") as f:
+    lines = f.readlines()
+    for line in lines:
+        samples.append(json.loads(line))
+
+with open("../../data/dialogue_datasets/kb_quests.jsonl", "r") as f:
+    lines = f.readlines()
+    for line in lines:
+        samples.append(json.loads(line))
+
 
 class convoSample():
     def __init__(self, personality:list, player_input:str, response:str):
@@ -126,3 +145,38 @@ def parse_conversation_output(output:dict):
             else:
                 bot_inputs.append(line.split(": ",1)[1])
     return(player_inputs,bot_inputs)
+
+def add_candidates(samples:list):
+    """
+    Take answers from other samples and add them as candidates 
+    """
+    dialogue_lines = [[line['candidates'] for line in sample['utterances']] for sample in samples]
+    flattened_list = []
+    for line in dialogue_lines:
+        for sub_line in line:
+            for sub_sub_line in sub_line:
+                flattened_list.append(sub_sub_line)
+    
+    for sample in samples:
+        for line in sample['utterances']:
+            line['history'] = [history.replace('"', '') for history in line['history']]
+            add_candidates = [candidate.replace('"', '') for candidate in random.sample(flattened_list, 10) if candidate.replace('"', '') != line["candidates"][0].replace('"', '')]
+            if len(add_candidates) < 10:
+                add_candidates += random.sample(flattened_list,1)
+            line['candidates'] = add_candidates + [line['candidates'][0].replace('"', '')]
+    
+    train, test = train_test_split(samples, random_state=0, test_size=0.2)
+
+    with open("../../data/dialogue_datasets/chatgpt_train.jsonl", "w") as f:
+        for sample in train:
+            f.write(json.dumps(sample))
+            f.write("\n")
+
+    with open("../../data/dialogue_datasets/chatgpt_test.jsonl", "w") as f:
+        for sample in test:
+            f.write(json.dumps(sample))
+            f.write("\n")
+
+
+if __name__ == "__main__":
+    add_candidates(samples)
