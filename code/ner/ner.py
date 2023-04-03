@@ -19,6 +19,8 @@ with open('data/knowledge_base/kb.json') as f:
 items = (knowledge_base['fall_crops'] + knowledge_base['fish'] + knowledge_base['food'] + 
          knowledge_base['minerals'] + knowledge_base['special_crops'] + 
          knowledge_base['spring_crops'] + knowledge_base['summer_crops'])
+idx = items.index('Cranberries')
+items[idx] = 'Cranberry'
 items = sorted(items)
 lower_items = [x.lower() for x in items]
 
@@ -87,36 +89,62 @@ matcher.add('BUY_PATTERN', buy_patterns)
 
 # item quest patterns
 item_quest_patterns = [
-    [{'LEMMA': {'IN': ['bring', 'need', 'retrieve', 'get', 'gather']}}, # matches on the request key word (required)
-     {'LOWER': {'IN': ['me', 'some', 'a', 'an', 'some']}, 'OP': '?'},               # matches on if the request if followed by 'me', 'some', 'a', 'an', 'some' 
+    [{'LEMMA': {'IN': ['bring', 'need', 'retrieve', 'get', 'gather', 'collect']}},  # matches on the request key word (required)
+     {'LOWER': {'IN': ['me', 'some', 'a', 'an', 'some', 'of']}, 'OP': '?'},         # matches on if the request if followed by 'me', 'some', 'a', 'an', 'some' 
      {'LOWER': {'IN': ['some', 'a', 'an']}, 'OP': '?'},                             # matches on the request qualifier  
+     {'POS': 'ADJ', 'OP': '?'},                                                     # matches on an adjective 
      {'POS': 'NUM', 'OP': '?'},                                                     # matches on if a quantity was requested 
+     {'POS': 'NOUN', 'OP': '?'},                                                    # matches on a noun
      {'LEMMA': {'IN': ['dozen', 'piece']}, 'OP': '?'},                              # matches on if a supplemental quantity was included 
      {'LOWER': {'IN': ['of']}, 'OP': '?'},
+     {'POS': 'DET', 'OP': '?'},
+     {'POS': 'ADJ', 'OP': '?'},
+     {'POS': 'CCONJ', 'OP': '?'},
+     {'POS': 'ADV', 'OP': '?'},
+     {'POS': 'ADJ', 'OP': '?'},
      {'LEMMA': {'IN': items}}],                                                     # matches lemma of item names against the items list (capitilized)
-    [{'LEMMA': {'IN': ['bring', 'need', 'retrieve', 'get', 'gather']}}, 
-     {'LOWER': {'IN': ['me', 'some', 'a', 'an', 'some']}, 'OP': '?'},                 
+    [{'LEMMA': {'IN': ['bring', 'need', 'retrieve', 'get', 'gather', 'collect']}}, 
+     {'LOWER': {'IN': ['me', 'some', 'a', 'an', 'some', 'of']}, 'OP': '?'},                 
      {'LOWER': {'IN': ['some', 'a', 'an']}, 'OP': '?'},                             
-     {'POS': 'NUM', 'OP': '?'},                                                     
+     {'POS': 'ADJ', 'OP': '?'},
+     {'POS': 'NUM', 'OP': '?'},
+     {'POS': 'NOUN', 'OP': '?'},                                                     
      {'LEMMA': {'IN': ['dozen', 'piece']}, 'OP': '?'},    
      {'LOWER': {'IN': ['of']}, 'OP': '?'},                                                 
+     {'POS': 'DET', 'OP': '?'},
+     {'POS': 'ADJ', 'OP': '?'},
+     {'POS': 'CCONJ', 'OP': '?'},
+     {'POS': 'ADV', 'OP': '?'},
+     {'POS': 'ADJ', 'OP': '?'},
      {'LEMMA': {'IN': lower_items}}],                                               # matches lemma of item names against the items list (lower case)
-    [{'LEMMA': {'IN': ['bring', 'need', 'retrieve', 'get', 'gather']}}, 
-     {'LOWER': {'IN': ['me', 'some', 'a', 'an', 'some']}, 'OP': '?'},                 
+    [{'LEMMA': {'IN': ['bring', 'need', 'retrieve', 'get', 'gather', 'collect']}}, 
+     {'LOWER': {'IN': ['me', 'some', 'a', 'an', 'some', 'of']}, 'OP': '?'},                 
      {'LOWER': {'IN': ['some', 'a', 'an']}, 'OP': '?'},                             
+     {'POS': 'ADJ', 'OP': '?'},
      {'POS': 'NUM', 'OP': '?'},                        
      {'POS': 'NOUN', 'OP': '?'},                         
      {'LEMMA': {'IN': ['dozen', 'piece']}, 'OP': '?'},         
      {'LOWER': {'IN': ['of']}, 'OP': '?'},                                            
+     {'POS': 'DET', 'OP': '?'},
+     {'POS': 'ADJ', 'OP': '?'},
+     {'POS': 'CCONJ', 'OP': '?'},
+     {'POS': 'ADV', 'OP': '?'},
+     {'POS': 'ADJ', 'OP': '?'},
      {'LEMMA': {'IN': items_first_word}},                                           # matches on the first word of multi-word items (capitalized)
      {'LEMMA': {'IN': items_second_word}}],                                         # matches on the second word of multi-word items (capitalized)
-    [{'LEMMA': {'IN': ['bring', 'need', 'retrieve', 'get', 'gather']}}, 
-     {'LOWER': {'IN': ['me', 'some', 'a', 'an', 'some']}, 'OP': '?'},                 
-     {'LOWER': {'IN': ['some', 'a', 'an']}, 'OP': '?'},                             
+    [{'LEMMA': {'IN': ['bring', 'need', 'retrieve', 'get', 'gather', 'collect']}}, 
+     {'LOWER': {'IN': ['me', 'some', 'a', 'an', 'some', 'of']}, 'OP': '?'},                 
+     {'LOWER': {'IN': ['some', 'a', 'an']}, 'OP': '?'},
+     {'POS': 'ADJ', 'OP': '?'},                             
      {'POS': 'NUM', 'OP': '?'},                        
      {'POS': 'NOUN', 'OP': '?'},                         
      {'LEMMA': {'IN': ['dozen', 'piece']}, 'OP': '?'},         
      {'LOWER': {'IN': ['of']}, 'OP': '?'},                                            
+     {'POS': 'DET', 'OP': '?'},
+     {'POS': 'ADJ', 'OP': '?'},
+     {'POS': 'CCONJ', 'OP': '?'},
+     {'POS': 'ADV', 'OP': '?'},
+     {'POS': 'ADJ', 'OP': '?'},
      {'LEMMA': {'IN': items_first_word_lower}},                                     # matches on the first word of multi-word items (lower case)
      {'LEMMA': {'IN': items_second_word_lower}}],                                   # matches on the second word of multi-word items (lower case)
 ]
@@ -172,11 +200,12 @@ target_mob = [
 secondary_matcher.add('TARGET_MOB', target_mob)
 
 ### testing
-test_dialogue = 'hey there, I heard you\'re quite the adventurer, would you be willing to help me out by slaying 10 lava crabs for me?'
+test_dialogue = 'hey there, i heard you\'re quite the adventurer, would you be willing to collect 10 pieces of bixite for me? i need them for a new art project i\'m working on.'
+# 'hey there, I heard you\'re quite the adventurer, would you be willing to help me out by slaying 10 lava crabs for me?'
 test_doc = nlp(test_dialogue)
-# print(f'Dialogue item: {test_dialogue}')
-for token in test_doc:
-    print(f'Token: \'{token.text}\', Token POS: {token.pos_}, Token lemma: {token.lemma_}')
+# for token in test_doc:
+#     print(f'Token: \'{token.text}\', Token POS: {token.pos_}, Token lemma: {token.lemma_}')
+print(f'Dialogue item: {test_dialogue}')
 matches = matcher(test_doc)
 for match_id, start, end in matches:
     print('---------------------------------------------')
