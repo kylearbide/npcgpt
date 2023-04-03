@@ -200,8 +200,8 @@ target_mob = [
 secondary_matcher.add('TARGET_MOB', target_mob)
 
 ### testing
+# test_dialogue = 'hey there, I heard you\'re quite the adventurer, would you be willing to help me out by slaying 10 lava crabs for me?'
 test_dialogue = 'hey there, i heard you\'re quite the adventurer, would you be willing to collect 10 pieces of bixite for me? i need them for a new art project i\'m working on.'
-# 'hey there, I heard you\'re quite the adventurer, would you be willing to help me out by slaying 10 lava crabs for me?'
 test_doc = nlp(test_dialogue)
 # for token in test_doc:
 #     print(f'Token: \'{token.text}\', Token POS: {token.pos_}, Token lemma: {token.lemma_}')
