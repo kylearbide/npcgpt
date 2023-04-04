@@ -6,5 +6,5 @@
 | chatGPT              |                                                                                                                           |
 | conversational       |                                                                                                                           |
 | knowledge_base       | Code to generate the knowledge base json file from wiki html files.                                                       |
-| models               | Model demo and saved Model 1 (due to size limitations, trained model 1 is only saved locally and not in the repository).  |
+| models               | Model demo and saved model 1 (due to size limitations, trained model 1 is only saved locally and not in the repository).  |
 | ner                  | Named-entity recognition code.                                                                                            |
