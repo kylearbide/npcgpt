@@ -206,10 +206,10 @@ def train():
     parser.add_argument("--device", type=str, default="cuda" if torch.cuda.is_available() else "cpu", help="Device (cuda or cpu)")
     parser.add_argument("--fp16", type=str, default="", help="Set to O0, O1, O2 or O3 for fp16 training (see apex documentation)")
     parser.add_argument("--local_rank", type=int, default=-1, help="Local rank for distributed training (-1: not distributed)")
-    parser.add_argument("--model_checkpoint", type=str, default="./models/dialoGPT", help="Path, url or short name for logging")
+    parser.add_argument("--model_checkpoint", type=str, default="./models/gpt2", help="Path, url or short name for logging")
     args = parser.parse_args()
 
-    checkpoint = "microsoft/DialoGPT-small"
+    checkpoint = "gpt2"
     device = "cuda:0" if torch.cuda.is_available() else "cpu"
 
     # tokenizer = AutoTokenizer.from_pretrained(checkpoint, device=device)
