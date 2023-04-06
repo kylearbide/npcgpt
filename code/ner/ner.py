@@ -199,29 +199,53 @@ target_mob = [
 ]
 secondary_matcher.add('TARGET_MOB', target_mob)
 
+# print(items)
+
 ### testing
 # test_dialogue = 'hey there, I heard you\'re quite the adventurer, would you be willing to help me out by slaying 10 lava crabs for me?'
-test_dialogue = 'hey there, i heard you\'re quite the adventurer, would you be willing to collect 10 pieces of bixite for me? i need them for a new art project i\'m working on.'
+# test_dialogue = 'hey there, i heard you\'re quite the adventurer, would you be willing to collect 10 pieces of bixite for me? i need them for a new art project i\'m working on.'
+test_dialogue = 'hey there, i heard you\'re quite the adventurer, would you be willing to collect 10 cranberry pips for me? i need them for a new recipe i\'m working on.'
 test_doc = nlp(test_dialogue)
 # for token in test_doc:
 #     print(f'Token: \'{token.text}\', Token POS: {token.pos_}, Token lemma: {token.lemma_}')
 print(f'Dialogue item: {test_dialogue}')
+
+### get and process matches 
+
+# hold match information 
+target_info = {}
+
 matches = matcher(test_doc)
 for match_id, start, end in matches:
-    print('---------------------------------------------')
-    print(f'Match tuple: ({match_id}, {start}, {end})')
-    match1 = test_doc[start:end]
-    print(f'Match: \'{match1}\'')
+
     string_id = nlp.vocab.strings[match_id]
-    print(f'String ID: {string_id}')
+    match1 = test_doc[start:end]
+
+    # print('---------------------------------------------')
+    # print(f'Match tuple: ({match_id}, {start}, {end})')
+    # print(f'Match: \'{match1}\'')
+    # print(f'String ID: {string_id}')
+
+    target_info[string_id] = {}
 
     secondary_matches = secondary_matcher(match1)
     for match_id2, start2, end2 in secondary_matches:
+        
         string_id2 = nlp.vocab.strings[match_id2]
+        match2 = match1[start2:end2]
         if string_id == 'MOB_QUEST_PATTERN' and string_id2 == 'TARGET_ITEM':
             continue
-        print('\t----------------------')
-        print(f'\tSecondary match tuple: ({match_id2}, {start2}, {end2})')
-        match2 = match1[start2:end2]
-        print(f'\tMatch: \'{match2}\'')
-        print(f'\tString ID: {string_id2}')
+        
+        # print('\t----------------------')
+        # print(f'\tSecondary match tuple: ({match_id2}, {start2}, {end2})')
+        # print(f'\tMatch: \'{match2}\'')
+        # print(f'\tString ID: {string_id2}')
+
+        if string_id2 == 'TARGET_ITEM':
+            target_info[string_id]['target_item'] = match2
+        elif string_id2 == 'TARGET_MOB':
+            target_info[string_id]['target_mob'] = match2
+        elif string_id2 == 'TARGET_QUANTITY':
+            target_info[string_id]['target_quantity'] = match2
+
+print(target_info)
