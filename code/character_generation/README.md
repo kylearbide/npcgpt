@@ -6,6 +6,10 @@ This code makes up the first step of the **npcgpt** project. By fine tuning the 
 
 The training data can be found at `data/character_bios.csv`. It consists of sample bios for made up Stardew Valley characters that are formatted and styled after the [Stardew Valley villager wiki pages](https://stardewvalleywiki.com/Villagers). 
 
+## Trained Model  
+
+Trained model is stored in the `code/models` folder. Due to size limitations, the trained model is only stored locally and not in the remote repository. 
+
 ## Files 
 
 | File                      | Description                                                                                                                       |
