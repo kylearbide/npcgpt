@@ -1,6 +1,6 @@
 from transformers import GPT2Tokenizer, GPT2LMHeadModel
 from transfer_learning_conversational import SPECIAL_TOKENS, ATTR_TO_SPECIAL_TOKEN, add_special_tokens, build_input_from_segments, get_dataset
-from build_raw_data import get_bios
+# from build_raw_data import get_bios
 from itertools import chain
 import torch
 import torch.nn.functional as F
@@ -12,8 +12,8 @@ from argparse import ArgumentParser
 
 device = 'cuda' if torch.cuda.is_available() else "cpu" 
 
-tokenizer = GPT2Tokenizer.from_pretrained('./models/dialoGPT')
-model = GPT2LMHeadModel.from_pretrained('./models/dialoGPT')
+tokenizer = GPT2Tokenizer.from_pretrained('code/conversational/models/dialoGPT')
+model = GPT2LMHeadModel.from_pretrained('code/conversational/models/dialoGPT')
 model.to(device)
 add_special_tokens(model,tokenizer, ATTR_TO_SPECIAL_TOKEN)
 
