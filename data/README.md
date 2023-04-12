@@ -10,3 +10,4 @@
 | generated_bios.csv           | If generating many sample bios at once for testing from model 1, they are output to this csv file.                                                                          |
 | generative_model_output.csv  | Holdout testing data from model 1 training process.                                                                                                                         |
 | stardew_valley_villagers.csv | The actual villager bios from the Stardew Valley villager wiki pages.                                                                                                       |
+| main.json                    | Holds the current character persona and a flag to determine whether to generate a new persona on next run.                                                                  |

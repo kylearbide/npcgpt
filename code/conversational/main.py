@@ -9,6 +9,9 @@ import pandas as pd
 import nltk.data
 import re
 from argparse import ArgumentParser
+import json 
+import subprocess
+import sys
 
 device = 'cuda' if torch.cuda.is_available() else "cpu" 
 
@@ -17,7 +20,25 @@ model = GPT2LMHeadModel.from_pretrained('code/conversational/models/dialoGPT')
 model.to(device)
 add_special_tokens(model,tokenizer, ATTR_TO_SPECIAL_TOKEN)
 
-default_persona = "zara is a skilled artist who creates unique art pieces for a wide variety of purposes.she is a student at a local high school, who takes classes in all subjects including painting and architecture.she is passionate about music and her love for music can be found in her writings."
+with open('data/main.json', 'r') as f:
+    data = json.load(f)
+
+def generate_new_bio():
+    def generate_bio(path):
+        command = [sys.executable, path, str(1)]
+        output = subprocess.check_output(command)
+        return output.decode('utf-8')
+
+    new_bio = generate_bio('code/character_generation/generate.py')
+    data['regenerate'] = False
+    data['persona'] = new_bio
+    with open('data/main.json', 'w') as f:
+        json.dump(data, f)
+
+if data['regenerate'] == True:
+    generate_new_bio()
+
+default_persona = data['persona']
 
 sent_tokenizer = nltk.data.load('tokenizers/punkt/english.pickle')
 
@@ -187,6 +208,13 @@ def main(persona = args.persona,
                 # return last bot output
                 return(tokenizer.decode(history[-1]))
             else:
+                new_character = input('Should a new character persona be generated on next run? y/n: ')
+                if new_character.lower() == 'y':
+                    with open('data/main.json', 'r') as f:
+                        main_json = json.load(f)
+                    main_json['regenerate'] = True 
+                    with open('data/main.json', 'w') as f:
+                        json.dump(main_json, f)
                 # Exits the application
                 talking = False
             

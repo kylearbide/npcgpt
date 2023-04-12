@@ -18,3 +18,4 @@ Trained models are stored in the `conversational/models` folder, but are hidden 
 | `eval.ipynb`                          | Notebook used for interacting with the trained models and created large sets of responses.                            |
 | `example_entry.py`                    | Example of the training data format.                                                                                  |
 | `transfer_learning_conversational.py` | Script used to perform transfer learning, includes data loaders, tokenization, and batch processing.                  |
+| `main.py`                             | Main python file that connects the different models together.                                                         |
