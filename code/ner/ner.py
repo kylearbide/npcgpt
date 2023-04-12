@@ -3,26 +3,34 @@ import json
 import spacy 
 from spacy.matcher import Matcher 
 
-nlp = spacy.load('en_core_web_sm')
-matcher = Matcher(nlp.vocab)
-secondary_matcher = Matcher(nlp.vocab)
+class NERMatcher():
 
-with open('data/knowledge_base/kb.json') as f:
-    knowledge_base = json.load(f)
+    def __init__(self) -> None:
 
-# print(knowledge_base)
-# print(knowledge_base.keys())
+        nlp = spacy.load('en_core_web_sm')
+        self.matcher = Matcher(nlp.vocab)
+        self.secondary_matcher = Matcher(nlp.vocab)
+
+        with open('data/knowledge_base/kb.json') as f:
+            self.knowledge_base = json.load(f)
+        self.items = (self.knowledge_base['fall_crops'] + self.knowledge_base['fish'] + self.knowledge_base['food'] + 
+                      self.knowledge_base['minerals'] + self.knowledge_base['special_crops'] + 
+                      self.knowledge_base['spring_crops'] + self.knowledge_base['summer_crops'])
+        self.lower_items = []
+        self._format_lists()
+
+    def _format_lists(self) -> None:
+
+        idx = self.items.index('Cranberries')
+        self.items[idx] = 'Cranberry'
+        self.items = sorted(self.items)
+        self.lower_items = [x.lower() for x in self.items]
+
 
 ### lists 
 
 # items
-items = (knowledge_base['fall_crops'] + knowledge_base['fish'] + knowledge_base['food'] + 
-         knowledge_base['minerals'] + knowledge_base['special_crops'] + 
-         knowledge_base['spring_crops'] + knowledge_base['summer_crops'])
-idx = items.index('Cranberries')
-items[idx] = 'Cranberry'
-items = sorted(items)
-lower_items = [x.lower() for x in items]
+
 
 multi_word_items = [x for x in items if ' ' in x]
 items_first_word = [x.split()[0] for x in multi_word_items]
