@@ -7,207 +7,234 @@ class NERMatcher():
 
     def __init__(self) -> None:
 
+        # general setup 
         nlp = spacy.load('en_core_web_sm')
         self.matcher = Matcher(nlp.vocab)
         self.secondary_matcher = Matcher(nlp.vocab)
 
         with open('data/knowledge_base/kb.json') as f:
             self.knowledge_base = json.load(f)
+
+        # lists 
+        self.items = None
+        self.lower_items = None 
+        self.items_first_word = None 
+        self.items_second_word = None 
+        self.items_first_word_lower = None
+        self.items_second_word_lower = None 
+
+        self.locations = None
+        self.lower_locations = None 
+        self.locations_first_word = None 
+        self.locations_second_word = None 
+        self.locations_first_word_lower = None 
+        self.locations_second_word_lower = None
+
+        self.mobs = None 
+        self.lower_mobs = None
+        self.mobs_first_word = None 
+        self.mobs_second_word = None
+        self.mobs_first_word_lower = None 
+        self.mobs_second_word_lower = None 
+
+        self._create_lists()
+
+        # initial patterns 
+        self.buy_patterns = None 
+        self.item_quest_patterns = None 
+        self.mob_quest_patterns = None 
+
+        # secondary patterns
+        self.target_items = None 
+        self.target_quantity = None 
+        self.target_mob = None 
+
+        self._create_patterns() 
+
+        # add initial patterns 
+        self.matcher.add('BUY_PATTERN', self.buy_patterns)
+        self.matcher.add('ITEM_QUEST_PATTERN', self.item_quest_patterns)
+        self.matcher.add('MOB_QUEST_PATTERN', self.mob_quest_patterns)
+
+        # add secondary patterns 
+        self.secondary_matcher.add('TARGET_ITEM', self.target_item)
+        self.secondary_matcher.add('TARGET_QUANTITY', self.target_quantity)
+        self.secondary_matcher.add('TARGET_MOB', self.target_mob)
+
+    def _create_lists(self) -> None:
+
         self.items = (self.knowledge_base['fall_crops'] + self.knowledge_base['fish'] + self.knowledge_base['food'] + 
                       self.knowledge_base['minerals'] + self.knowledge_base['special_crops'] + 
                       self.knowledge_base['spring_crops'] + self.knowledge_base['summer_crops'])
-        self.lower_items = []
-        self._format_lists()
-
-    def _format_lists(self) -> None:
-
         idx = self.items.index('Cranberries')
         self.items[idx] = 'Cranberry'
         self.items = sorted(self.items)
         self.lower_items = [x.lower() for x in self.items]
+        multi_word_items = [x for x in self.items if ' ' in x]
+        self.items_first_word = [x.split()[0] for x in multi_word_items]
+        self.items_second_word = [x.split()[1] for x in multi_word_items]
+        self.items_first_word_lower = [x.lower() for x in self.items_first_word]
+        self.items_second_word_lower = [x.lower() for x in self.items_second_word]
 
+        self.locations = self.knowledge_base['locations']
+        self.locations = sorted(self.locations)
+        self.lower_locations = [x.lower() for x in self.locations]
+        multi_word_locations = [x for x in self.locations if ' ' in x]
+        self.locations_first_word = [x.split()[0] for x in multi_word_locations]
+        self.locations_second_word = [x.split()[1] for x in multi_word_locations]
+        self.locations_first_word_lower = [x.lower() for x in self.locations_first_word]
+        self.locations_second_word_lower = [x.lower() for x in self.locations_second_word]
 
-### lists 
+        self.mobs = self.knowledge_base['mobs']
+        self.mobs = sorted(self.mobs)
+        self.lower_mobs = [x.lower() for x in self.mobs]
+        multi_word_mobs = [x for x in self.mobs if ' ' in x]
+        self.mobs_first_word = [x.split()[0] for x in multi_word_mobs]
+        self.mobs_second_word = [x.split()[1] for x in multi_word_mobs]
+        self.mobs_first_word_lower = [x.lower() for x in self.mobs_first_word]
+        self.mobs_second_word_lower = [x.lower() for x in self.mobs_second_word]
 
-# items
+    def _create_patterns(self) -> None:
 
+        ### initial patterns 
+        # buy patterns
+        self.buy_patterns = [
+            [{'LEMMA': {'IN': ['buy', 'purchase', 'get']}},            # matches on the words 'buy', 'purchase', or 'get' (required)
+            {'POS': 'NUM', 'OP': '?'},                                 # matches if a quantity (decimal) was included (optional)
+            {'LOWER': {'IN': ['new', 'a', 'an', 'some']}, 'OP': '?'},  # matches in case if a player says something general such as 'I would like to buy an [item]' (optional)
+            {'LOWER': {'IN': ['item', 'items']}, 'OP': '?'},           # matches in case if a player says something general such as 'I would like to buy an item' (optional)
+            {'LOWER': {'IN': ['of']}, 'OP': '?'},                      # matches in case if a player says something general such as 'I would like to buy a bowl of fish stew' (optional)
+            {'LEMMA': {'IN': self.items}}],                            # matches lemma of item names against the items list (capitilized)
+            [{'LEMMA': {'IN': ['buy', 'purchase', 'get']}},             
+            {'POS': 'NUM', 'OP': '?'},                                  
+            {'LOWER': {'IN': ['new', 'a', 'an', 'some']}, 'OP': '?'},   
+            {'LOWER': {'IN': ['item', 'items']}, 'OP': '?'},            
+            {'LOWER': {'IN': ['of']}, 'OP': '?'},                       
+            {'LEMMA': {'IN': self.lower_items}}],                      # matches lemma of item names against the items list (lower case)
+            [{'LEMMA': {'IN': ['buy', 'purchase', 'get']}},             
+            {'POS': 'NUM', 'OP': '?'},                                  
+            {'LOWER': {'IN': ['new', 'a', 'an', 'some']}, 'OP': '?'},   
+            {'LOWER': {'IN': ['item', 'items']}, 'OP': '?'},            
+            {'POS': 'NOUN', 'OP': '?'}, 
+            {'LOWER': {'IN': ['of']}, 'OP': '?'},                      
+            {'LEMMA': {'IN': self.items_first_word}},                  # matches on the first word of multi-word items (capitalized)
+            {'LEMMA': {'IN': self.items_second_word}}],                # matches on the second word of multi-word items (capitalized)
+            [{'LEMMA': {'IN': ['buy', 'purchase', 'get']}},             
+            {'POS': 'NUM', 'OP': '?'},                                  
+            {'LOWER': {'IN': ['new', 'a', 'an', 'some']}, 'OP': '?'},   
+            {'LOWER': {'IN': ['item', 'items']}, 'OP': '?'},            
+            {'POS': 'NOUN', 'OP': '?'}, 
+            {'LOWER': {'IN': ['of']}, 'OP': '?'},                      
+            {'LEMMA': {'IN': self.items_first_word_lower}},            # matches on the first word of multi-word items (capitalized)
+            {'LEMMA': {'IN': self.items_second_word_lower}}]           # matches on the second word of multi-word items (capitalized)
+        ]
 
-multi_word_items = [x for x in items if ' ' in x]
-items_first_word = [x.split()[0] for x in multi_word_items]
-items_second_word = [x.split()[1] for x in multi_word_items]
-items_first_word_lower = [x.lower() for x in items_first_word]
-items_second_word_lower = [x.lower() for x in items_second_word]
+        # item quest patterns
+        self.item_quest_patterns = [
+            [{'LEMMA': {'IN': ['bring', 'need', 'retrieve', 'get', 'gather', 'collect']}}, # matches on the request key word (required)
+            {'LOWER': {'IN': ['me', 'some', 'a', 'an', 'some', 'of']}, 'OP': '?'},         # matches on if the request if followed by 'me', 'some', 'a', 'an', 'some' 
+            {'LOWER': {'IN': ['some', 'a', 'an']}, 'OP': '?'},                             # matches on the request qualifier  
+            {'POS': 'ADJ', 'OP': '?'},                                                     # matches on an adjective 
+            {'POS': 'NUM', 'OP': '?'},                                                     # matches on if a quantity was requested 
+            {'POS': 'NOUN', 'OP': '?'},                                                    # matches on a noun
+            {'LEMMA': {'IN': ['dozen', 'piece']}, 'OP': '?'},                              # matches on if a supplemental quantity was included 
+            {'LOWER': {'IN': ['of']}, 'OP': '?'},
+            {'POS': 'DET', 'OP': '?'},
+            {'POS': 'ADJ', 'OP': '?'},
+            {'POS': 'CCONJ', 'OP': '?'},
+            {'POS': 'ADV', 'OP': '?'},
+            {'POS': 'ADJ', 'OP': '?'},
+            {'LEMMA': {'IN': self.items}}],                                                # matches lemma of item names against the items list (capitilized)
+            [{'LEMMA': {'IN': ['bring', 'need', 'retrieve', 'get', 'gather', 'collect']}}, 
+            {'LOWER': {'IN': ['me', 'some', 'a', 'an', 'some', 'of']}, 'OP': '?'},                 
+            {'LOWER': {'IN': ['some', 'a', 'an']}, 'OP': '?'},                             
+            {'POS': 'ADJ', 'OP': '?'},
+            {'POS': 'NUM', 'OP': '?'},
+            {'POS': 'NOUN', 'OP': '?'},                                                     
+            {'LEMMA': {'IN': ['dozen', 'piece']}, 'OP': '?'},    
+            {'LOWER': {'IN': ['of']}, 'OP': '?'},                                                 
+            {'POS': 'DET', 'OP': '?'},
+            {'POS': 'ADJ', 'OP': '?'},
+            {'POS': 'CCONJ', 'OP': '?'},
+            {'POS': 'ADV', 'OP': '?'},
+            {'POS': 'ADJ', 'OP': '?'},
+            {'LEMMA': {'IN': self.lower_items}}],                                          # matches lemma of item names against the items list (lower case)
+            [{'LEMMA': {'IN': ['bring', 'need', 'retrieve', 'get', 'gather', 'collect']}}, 
+            {'LOWER': {'IN': ['me', 'some', 'a', 'an', 'some', 'of']}, 'OP': '?'},                 
+            {'LOWER': {'IN': ['some', 'a', 'an']}, 'OP': '?'},                             
+            {'POS': 'ADJ', 'OP': '?'},
+            {'POS': 'NUM', 'OP': '?'},                        
+            {'POS': 'NOUN', 'OP': '?'},                         
+            {'LEMMA': {'IN': ['dozen', 'piece']}, 'OP': '?'},         
+            {'LOWER': {'IN': ['of']}, 'OP': '?'},                                            
+            {'POS': 'DET', 'OP': '?'},
+            {'POS': 'ADJ', 'OP': '?'},
+            {'POS': 'CCONJ', 'OP': '?'},
+            {'POS': 'ADV', 'OP': '?'},
+            {'POS': 'ADJ', 'OP': '?'},
+            {'LEMMA': {'IN': self.items_first_word}},                                      # matches on the first word of multi-word items (capitalized)
+            {'LEMMA': {'IN': self.items_second_word}}],                                    # matches on the second word of multi-word items (capitalized)
+            [{'LEMMA': {'IN': ['bring', 'need', 'retrieve', 'get', 'gather', 'collect']}}, 
+            {'LOWER': {'IN': ['me', 'some', 'a', 'an', 'some', 'of']}, 'OP': '?'},                 
+            {'LOWER': {'IN': ['some', 'a', 'an']}, 'OP': '?'},
+            {'POS': 'ADJ', 'OP': '?'},                             
+            {'POS': 'NUM', 'OP': '?'},                        
+            {'POS': 'NOUN', 'OP': '?'},                         
+            {'LEMMA': {'IN': ['dozen', 'piece']}, 'OP': '?'},         
+            {'LOWER': {'IN': ['of']}, 'OP': '?'},                                            
+            {'POS': 'DET', 'OP': '?'},
+            {'POS': 'ADJ', 'OP': '?'},
+            {'POS': 'CCONJ', 'OP': '?'},
+            {'POS': 'ADV', 'OP': '?'},
+            {'POS': 'ADJ', 'OP': '?'},
+            {'LEMMA': {'IN': self.items_first_word_lower}},                                # matches on the first word of multi-word items (lower case)
+            {'LEMMA': {'IN': self.items_second_word_lower}}],                              # matches on the second word of multi-word items (lower case)
+        ]
 
-# locations
-locations = knowledge_base['locations']
-locations = sorted(locations)
-lower_locations = [x.lower() for x in locations]
+        # mob quest patterns 
+        self.mob_quest_patterns = [
+            [{'LEMMA': {'IN': ['slay', 'kill', 'defeat', 'find']}},
+            {'LOWER': {'IN': ['a', 'an']}, 'OP': '?'},
+            {'POS': 'NUM', 'OP': '?'},
+            {'LEMMA': {'IN': self.mobs}}],
+            [{'LEMMA': {'IN': ['slay', 'kill', 'defeat', 'find']}},
+            {'LOWER': {'IN': ['a', 'an']}, 'OP': '?'},
+            {'POS': 'NUM', 'OP': '?'},
+            {'LEMMA': {'IN': self.lower_mobs}}],
+            [{'LEMMA': {'IN': ['slay', 'kill', 'defeat', 'find']}},
+            {'LOWER': {'IN': ['a', 'an']}, 'OP': '?'},
+            {'POS': 'NUM', 'OP': '?'},
+            {'LEMMA': {'IN': self.mobs_first_word}},
+            {'LEMMA': {'IN': self.mobs_second_word}}],
+            [{'LEMMA': {'IN': ['slay', 'kill', 'defeat', 'find']}},
+            {'LOWER': {'IN': ['a', 'an']}, 'OP': '?'},
+            {'POS': 'NUM', 'OP': '?'},
+            {'LEMMA': {'IN': self.mobs_first_word_lower}},
+            {'LEMMA': {'IN': self.mobs_second_word_lower}}]
+        ]
 
-multi_word_locations = [x for x in locations if ' ' in x]
-locations_first_word = [x.split()[0] for x in multi_word_locations]
-locations_second_word = [x.split()[1] for x in multi_word_locations]
-locations_first_word_lower = [x.lower() for x in locations_first_word]
-locations_second_word_lower = [x.lower() for x in locations_second_word]
+        ### secondary patterns 
+        self.target_item = [
+            [{'LEMMA': {'IN': self.items}}],
+            [{'LEMMA': {'IN': self.lower_items}}],
+            [{'LEMMA': {'IN': self.items_first_word}},
+            {'LEMMA': {'IN': self.items_second_word}}],
+            [{'LEMMA': {'IN': self.items_first_word_lower}},
+            {'LEMMA': {'IN': self.items_second_word_lower}}]
+        ]
 
-# mobs 
-mobs = knowledge_base['mobs']
-mobs = sorted(mobs)
-lower_mobs = [x.lower() for x in mobs]
+        self.target_quantity = [
+            [{'POS': 'NUM'}]
+        ]
 
-multi_word_mobs = [x for x in mobs if ' ' in x]
-mobs_first_word = [x.split()[0] for x in multi_word_mobs]
-mobs_second_word = [x.split()[1] for x in multi_word_mobs]
-mobs_first_word_lower = [x.lower() for x in mobs_first_word]
-mobs_second_word_lower = [x.lower() for x in mobs_second_word] 
-
-### initial patterns 
-
-# buy patterns
-buy_patterns = [
-    [{'LEMMA': {'IN': ['buy', 'purchase', 'get']}},             # matches on the words 'buy', 'purchase', or 'get' (required)
-     {'POS': 'NUM', 'OP': '?'},                                 # matches if a quantity (decimal) was included (optional)
-     {'LOWER': {'IN': ['new', 'a', 'an', 'some']}, 'OP': '?'},  # matches in case if a player says something general such as 'I would like to buy an [item]' (optional)
-     {'LOWER': {'IN': ['item', 'items']}, 'OP': '?'},           # matches in case if a player says something general such as 'I would like to buy an item' (optional)
-     {'LOWER': {'IN': ['of']}, 'OP': '?'},                      # matches in case if a player says something general such as 'I would like to buy a bowl of fish stew' (optional)
-     {'LEMMA': {'IN': items}}],                                 # matches lemma of item names against the items list (capitilized)
-    [{'LEMMA': {'IN': ['buy', 'purchase', 'get']}},             
-     {'POS': 'NUM', 'OP': '?'},                                  
-     {'LOWER': {'IN': ['new', 'a', 'an', 'some']}, 'OP': '?'},   
-     {'LOWER': {'IN': ['item', 'items']}, 'OP': '?'},            
-     {'LOWER': {'IN': ['of']}, 'OP': '?'},                       
-     {'LEMMA': {'IN': lower_items}}],                           # matches lemma of item names against the items list (lower case)
-    [{'LEMMA': {'IN': ['buy', 'purchase', 'get']}},             
-     {'POS': 'NUM', 'OP': '?'},                                  
-     {'LOWER': {'IN': ['new', 'a', 'an', 'some']}, 'OP': '?'},   
-     {'LOWER': {'IN': ['item', 'items']}, 'OP': '?'},            
-     {'POS': 'NOUN', 'OP': '?'}, 
-     {'LOWER': {'IN': ['of']}, 'OP': '?'},                      
-     {'LEMMA': {'IN': items_first_word}},                       # matches on the first word of multi-word items (capitalized)
-     {'LEMMA': {'IN': items_second_word}}],                     # matches on the second word of multi-word items (capitalized)
-    [{'LEMMA': {'IN': ['buy', 'purchase', 'get']}},             
-     {'POS': 'NUM', 'OP': '?'},                                  
-     {'LOWER': {'IN': ['new', 'a', 'an', 'some']}, 'OP': '?'},   
-     {'LOWER': {'IN': ['item', 'items']}, 'OP': '?'},            
-     {'POS': 'NOUN', 'OP': '?'}, 
-     {'LOWER': {'IN': ['of']}, 'OP': '?'},                      
-     {'LEMMA': {'IN': items_first_word_lower}},                 # matches on the first word of multi-word items (capitalized)
-     {'LEMMA': {'IN': items_second_word_lower}}]                # matches on the second word of multi-word items (capitalized)
-]
-matcher.add('BUY_PATTERN', buy_patterns)
-
-# item quest patterns
-item_quest_patterns = [
-    [{'LEMMA': {'IN': ['bring', 'need', 'retrieve', 'get', 'gather', 'collect']}},  # matches on the request key word (required)
-     {'LOWER': {'IN': ['me', 'some', 'a', 'an', 'some', 'of']}, 'OP': '?'},         # matches on if the request if followed by 'me', 'some', 'a', 'an', 'some' 
-     {'LOWER': {'IN': ['some', 'a', 'an']}, 'OP': '?'},                             # matches on the request qualifier  
-     {'POS': 'ADJ', 'OP': '?'},                                                     # matches on an adjective 
-     {'POS': 'NUM', 'OP': '?'},                                                     # matches on if a quantity was requested 
-     {'POS': 'NOUN', 'OP': '?'},                                                    # matches on a noun
-     {'LEMMA': {'IN': ['dozen', 'piece']}, 'OP': '?'},                              # matches on if a supplemental quantity was included 
-     {'LOWER': {'IN': ['of']}, 'OP': '?'},
-     {'POS': 'DET', 'OP': '?'},
-     {'POS': 'ADJ', 'OP': '?'},
-     {'POS': 'CCONJ', 'OP': '?'},
-     {'POS': 'ADV', 'OP': '?'},
-     {'POS': 'ADJ', 'OP': '?'},
-     {'LEMMA': {'IN': items}}],                                                     # matches lemma of item names against the items list (capitilized)
-    [{'LEMMA': {'IN': ['bring', 'need', 'retrieve', 'get', 'gather', 'collect']}}, 
-     {'LOWER': {'IN': ['me', 'some', 'a', 'an', 'some', 'of']}, 'OP': '?'},                 
-     {'LOWER': {'IN': ['some', 'a', 'an']}, 'OP': '?'},                             
-     {'POS': 'ADJ', 'OP': '?'},
-     {'POS': 'NUM', 'OP': '?'},
-     {'POS': 'NOUN', 'OP': '?'},                                                     
-     {'LEMMA': {'IN': ['dozen', 'piece']}, 'OP': '?'},    
-     {'LOWER': {'IN': ['of']}, 'OP': '?'},                                                 
-     {'POS': 'DET', 'OP': '?'},
-     {'POS': 'ADJ', 'OP': '?'},
-     {'POS': 'CCONJ', 'OP': '?'},
-     {'POS': 'ADV', 'OP': '?'},
-     {'POS': 'ADJ', 'OP': '?'},
-     {'LEMMA': {'IN': lower_items}}],                                               # matches lemma of item names against the items list (lower case)
-    [{'LEMMA': {'IN': ['bring', 'need', 'retrieve', 'get', 'gather', 'collect']}}, 
-     {'LOWER': {'IN': ['me', 'some', 'a', 'an', 'some', 'of']}, 'OP': '?'},                 
-     {'LOWER': {'IN': ['some', 'a', 'an']}, 'OP': '?'},                             
-     {'POS': 'ADJ', 'OP': '?'},
-     {'POS': 'NUM', 'OP': '?'},                        
-     {'POS': 'NOUN', 'OP': '?'},                         
-     {'LEMMA': {'IN': ['dozen', 'piece']}, 'OP': '?'},         
-     {'LOWER': {'IN': ['of']}, 'OP': '?'},                                            
-     {'POS': 'DET', 'OP': '?'},
-     {'POS': 'ADJ', 'OP': '?'},
-     {'POS': 'CCONJ', 'OP': '?'},
-     {'POS': 'ADV', 'OP': '?'},
-     {'POS': 'ADJ', 'OP': '?'},
-     {'LEMMA': {'IN': items_first_word}},                                           # matches on the first word of multi-word items (capitalized)
-     {'LEMMA': {'IN': items_second_word}}],                                         # matches on the second word of multi-word items (capitalized)
-    [{'LEMMA': {'IN': ['bring', 'need', 'retrieve', 'get', 'gather', 'collect']}}, 
-     {'LOWER': {'IN': ['me', 'some', 'a', 'an', 'some', 'of']}, 'OP': '?'},                 
-     {'LOWER': {'IN': ['some', 'a', 'an']}, 'OP': '?'},
-     {'POS': 'ADJ', 'OP': '?'},                             
-     {'POS': 'NUM', 'OP': '?'},                        
-     {'POS': 'NOUN', 'OP': '?'},                         
-     {'LEMMA': {'IN': ['dozen', 'piece']}, 'OP': '?'},         
-     {'LOWER': {'IN': ['of']}, 'OP': '?'},                                            
-     {'POS': 'DET', 'OP': '?'},
-     {'POS': 'ADJ', 'OP': '?'},
-     {'POS': 'CCONJ', 'OP': '?'},
-     {'POS': 'ADV', 'OP': '?'},
-     {'POS': 'ADJ', 'OP': '?'},
-     {'LEMMA': {'IN': items_first_word_lower}},                                     # matches on the first word of multi-word items (lower case)
-     {'LEMMA': {'IN': items_second_word_lower}}],                                   # matches on the second word of multi-word items (lower case)
-]
-matcher.add('ITEM_QUEST_PATTERN', item_quest_patterns)
-
-# mob quest patterns 
-mob_quest_patterns = [
-    [{'LEMMA': {'IN': ['slay', 'kill', 'defeat', 'find']}},
-     {'LOWER': {'IN': ['a', 'an']}, 'OP': '?'},
-     {'POS': 'NUM', 'OP': '?'},
-     {'LEMMA': {'IN': mobs}}],
-    [{'LEMMA': {'IN': ['slay', 'kill', 'defeat', 'find']}},
-     {'LOWER': {'IN': ['a', 'an']}, 'OP': '?'},
-     {'POS': 'NUM', 'OP': '?'},
-     {'LEMMA': {'IN': lower_mobs}}],
-    [{'LEMMA': {'IN': ['slay', 'kill', 'defeat', 'find']}},
-     {'LOWER': {'IN': ['a', 'an']}, 'OP': '?'},
-     {'POS': 'NUM', 'OP': '?'},
-     {'LEMMA': {'IN': mobs_first_word}},
-     {'LEMMA': {'IN': mobs_second_word}}],
-    [{'LEMMA': {'IN': ['slay', 'kill', 'defeat', 'find']}},
-     {'LOWER': {'IN': ['a', 'an']}, 'OP': '?'},
-     {'POS': 'NUM', 'OP': '?'},
-     {'LEMMA': {'IN': mobs_first_word_lower}},
-     {'LEMMA': {'IN': mobs_second_word_lower}}]
-]
-matcher.add('MOB_QUEST_PATTERN', mob_quest_patterns)
-
-### secondary patterns 
-target_item = [
-    [{'LEMMA': {'IN': items}}],
-    [{'LEMMA': {'IN': lower_items}}],
-    [{'LEMMA': {'IN': items_first_word}},
-     {'LEMMA': {'IN': items_second_word}}],
-    [{'LEMMA': {'IN': items_first_word_lower}},
-     {'LEMMA': {'IN': items_second_word_lower}}]
-]
-secondary_matcher.add('TARGET_ITEM', target_item)
-
-target_quantity = [
-    [{'POS': 'NUM'}]
-]
-secondary_matcher.add('TARGET_QUANTITY', target_quantity)
-
-target_mob = [
-    [{'LEMMA': {'IN': mobs}}],
-    [{'LEMMA': {'IN': lower_mobs}}],
-    [{'LEMMA': {'IN': mobs_first_word}},
-     {'LEMMA': {'IN': mobs_second_word}}],
-    [{'LEMMA': {'IN': mobs_first_word_lower}},
-     {'LEMMA': {'IN': mobs_second_word_lower}}]
-]
-secondary_matcher.add('TARGET_MOB', target_mob)
-
-# print(items)
+        self.target_mob = [
+            [{'LEMMA': {'IN': self.mobs}}],
+            [{'LEMMA': {'IN': self.lower_mobs}}],
+            [{'LEMMA': {'IN': self.mobs_first_word}},
+            {'LEMMA': {'IN': self.mobs_second_word}}],
+            [{'LEMMA': {'IN': self.mobs_first_word_lower}},
+            {'LEMMA': {'IN': self.mobs_second_word_lower}}]
+        ]
 
 ### testing
 # test_dialogue = 'hey there, I heard you\'re quite the adventurer, would you be willing to help me out by slaying 10 lava crabs for me?'
