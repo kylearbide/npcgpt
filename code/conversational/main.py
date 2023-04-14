@@ -12,6 +12,8 @@ from argparse import ArgumentParser
 import json 
 import subprocess
 import sys
+sys.path.append('code/ner')
+from ner import NERMatcher 
 
 device = 'cuda' if torch.cuda.is_available() else "cpu" 
 
@@ -160,6 +162,7 @@ def main(persona = args.persona,
          top_p = args.top_p
          ):
     
+    matcher = NERMatcher() 
 
     # Format persona for model consumption
     persona = format_persona(args.persona)
@@ -198,6 +201,7 @@ def main(persona = args.persona,
                     out_text = tokenizer.decode(output, skip_special_tokens=True)
                     history.append(output)
                     print("CaptAIn: " + out_text)
+                    print(f'Matcher output: {matcher.match_dialogue(out_text)}')
             elif action == "restart":
                 # Resets the history, allows you to pick if you want to start of if you want the AI to start
                 history = []
