@@ -131,10 +131,10 @@ class NERMatcher():
 
         # item quest patterns
         self.item_quest_patterns = [
-            [{'LEMMA': {'IN': ['bring', 'need', 'retrieve', 'get', 'gather', 'collect']}}, # matches on the request key word (required)
-            {'LOWER': {'IN': ['me', 'some', 'a', 'an', 'some', 'of']}, 'OP': '?'},         # matches on if the request if followed by 'me', 'some', 'a', 'an', 'some' 
+            [{'LEMMA': {'IN': ['bring', 'need', 'retrieve', 'get', 'gather', 'collect', 'take', 'catch']}}, # matches on the request key word (required)
+            {'LOWER': {'IN': ['me', 'some', 'a', 'an', 'some', 'of', 'down']}, 'OP': '?'},         # matches on if the request if followed by 'me', 'some', 'a', 'an', 'some' 
             {'LOWER': {'IN': ['some', 'a', 'an']}, 'OP': '?'},                             # matches on the request qualifier  
-            {'POS': 'ADJ', 'OP': '?'},                                                     # matches on an adjective 
+            {'POS': 'ADJ', 'OP': '*'},                                                     # matches on an adjective 
             {'POS': 'NUM', 'OP': '?'},                                                     # matches on if a quantity was requested 
             {'POS': 'NOUN', 'OP': '?'},                                                    # matches on a noun
             {'LEMMA': {'IN': ['dozen', 'piece']}, 'OP': '?'},                              # matches on if a supplemental quantity was included 
@@ -145,10 +145,10 @@ class NERMatcher():
             {'POS': 'ADV', 'OP': '?'},
             {'POS': 'ADJ', 'OP': '?'},
             {'LEMMA': {'IN': self.items}}],                                                # matches lemma of item names against the items list (capitilized)
-            [{'LEMMA': {'IN': ['bring', 'need', 'retrieve', 'get', 'gather', 'collect']}}, 
-            {'LOWER': {'IN': ['me', 'some', 'a', 'an', 'some', 'of']}, 'OP': '?'},                 
+            [{'LEMMA': {'IN': ['bring', 'need', 'retrieve', 'get', 'gather', 'collect', 'take', 'catch']}}, 
+            {'LOWER': {'IN': ['me', 'some', 'a', 'an', 'some', 'of', 'down']}, 'OP': '?'},                 
             {'LOWER': {'IN': ['some', 'a', 'an']}, 'OP': '?'},                             
-            {'POS': 'ADJ', 'OP': '?'},
+            {'POS': 'ADJ', 'OP': '*'},
             {'POS': 'NUM', 'OP': '?'},
             {'POS': 'NOUN', 'OP': '?'},                                                     
             {'LEMMA': {'IN': ['dozen', 'piece']}, 'OP': '?'},    
@@ -159,10 +159,10 @@ class NERMatcher():
             {'POS': 'ADV', 'OP': '?'},
             {'POS': 'ADJ', 'OP': '?'},
             {'LEMMA': {'IN': self.lower_items}}],                                          # matches lemma of item names against the items list (lower case)
-            [{'LEMMA': {'IN': ['bring', 'need', 'retrieve', 'get', 'gather', 'collect']}}, 
-            {'LOWER': {'IN': ['me', 'some', 'a', 'an', 'some', 'of']}, 'OP': '?'},                 
+            [{'LEMMA': {'IN': ['bring', 'need', 'retrieve', 'get', 'gather', 'collect', 'take', 'catch']}}, 
+            {'LOWER': {'IN': ['me', 'some', 'a', 'an', 'some', 'of', 'down']}, 'OP': '?'},                 
             {'LOWER': {'IN': ['some', 'a', 'an']}, 'OP': '?'},                             
-            {'POS': 'ADJ', 'OP': '?'},
+            {'POS': 'ADJ', 'OP': '*'},
             {'POS': 'NUM', 'OP': '?'},                        
             {'POS': 'NOUN', 'OP': '?'},                         
             {'LEMMA': {'IN': ['dozen', 'piece']}, 'OP': '?'},         
@@ -174,10 +174,10 @@ class NERMatcher():
             {'POS': 'ADJ', 'OP': '?'},
             {'LEMMA': {'IN': self.items_first_word}},                                      # matches on the first word of multi-word items (capitalized)
             {'LEMMA': {'IN': self.items_second_word}}],                                    # matches on the second word of multi-word items (capitalized)
-            [{'LEMMA': {'IN': ['bring', 'need', 'retrieve', 'get', 'gather', 'collect']}}, 
-            {'LOWER': {'IN': ['me', 'some', 'a', 'an', 'some', 'of']}, 'OP': '?'},                 
+            [{'LEMMA': {'IN': ['bring', 'need', 'retrieve', 'get', 'gather', 'collect', 'take', 'catch']}}, 
+            {'LOWER': {'IN': ['me', 'some', 'a', 'an', 'some', 'of', 'down']}, 'OP': '?'},                 
             {'LOWER': {'IN': ['some', 'a', 'an']}, 'OP': '?'},
-            {'POS': 'ADJ', 'OP': '?'},                             
+            {'POS': 'ADJ', 'OP': '*'},                             
             {'POS': 'NUM', 'OP': '?'},                        
             {'POS': 'NOUN', 'OP': '?'},                         
             {'LEMMA': {'IN': ['dozen', 'piece']}, 'OP': '?'},         
