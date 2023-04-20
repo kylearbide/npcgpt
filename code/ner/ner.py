@@ -140,10 +140,11 @@ class NERMatcher():
             {'LEMMA': {'IN': ['dozen', 'piece']}, 'OP': '?'},                              # matches on if a supplemental quantity was included 
             {'LOWER': {'IN': ['of']}, 'OP': '?'},
             {'POS': 'DET', 'OP': '?'},
-            {'POS': 'ADJ', 'OP': '?'},
+            {'POS': 'ADJ', 'OP': '*'},
+            {'POS': 'PROPN', 'OP': '*'},
             {'POS': 'CCONJ', 'OP': '?'},
             {'POS': 'ADV', 'OP': '?'},
-            {'POS': 'ADJ', 'OP': '?'},
+            {'POS': 'ADJ', 'OP': '*'},
             {'LEMMA': {'IN': self.items}}],                                                # matches lemma of item names against the items list (capitilized)
             [{'LEMMA': {'IN': ['bring', 'need', 'retrieve', 'get', 'gather', 'collect', 'take', 'catch']}}, 
             {'LOWER': {'IN': ['me', 'some', 'a', 'an', 'some', 'of', 'down']}, 'OP': '?'},                 
@@ -154,10 +155,11 @@ class NERMatcher():
             {'LEMMA': {'IN': ['dozen', 'piece']}, 'OP': '?'},    
             {'LOWER': {'IN': ['of']}, 'OP': '?'},                                                 
             {'POS': 'DET', 'OP': '?'},
-            {'POS': 'ADJ', 'OP': '?'},
+            {'POS': 'ADJ', 'OP': '*'},
+            {'POS': 'PROPN', 'OP': '*'},
             {'POS': 'CCONJ', 'OP': '?'},
             {'POS': 'ADV', 'OP': '?'},
-            {'POS': 'ADJ', 'OP': '?'},
+            {'POS': 'ADJ', 'OP': '*'},
             {'LEMMA': {'IN': self.lower_items}}],                                          # matches lemma of item names against the items list (lower case)
             [{'LEMMA': {'IN': ['bring', 'need', 'retrieve', 'get', 'gather', 'collect', 'take', 'catch']}}, 
             {'LOWER': {'IN': ['me', 'some', 'a', 'an', 'some', 'of', 'down']}, 'OP': '?'},                 
@@ -168,10 +170,11 @@ class NERMatcher():
             {'LEMMA': {'IN': ['dozen', 'piece']}, 'OP': '?'},         
             {'LOWER': {'IN': ['of']}, 'OP': '?'},                                            
             {'POS': 'DET', 'OP': '?'},
-            {'POS': 'ADJ', 'OP': '?'},
+            {'POS': 'ADJ', 'OP': '*'},
+            {'POS': 'PROPN', 'OP': '*'},
             {'POS': 'CCONJ', 'OP': '?'},
             {'POS': 'ADV', 'OP': '?'},
-            {'POS': 'ADJ', 'OP': '?'},
+            {'POS': 'ADJ', 'OP': '*'},
             {'LEMMA': {'IN': self.items_first_word}},                                      # matches on the first word of multi-word items (capitalized)
             {'LEMMA': {'IN': self.items_second_word}}],                                    # matches on the second word of multi-word items (capitalized)
             [{'LEMMA': {'IN': ['bring', 'need', 'retrieve', 'get', 'gather', 'collect', 'take', 'catch']}}, 
@@ -183,10 +186,11 @@ class NERMatcher():
             {'LEMMA': {'IN': ['dozen', 'piece']}, 'OP': '?'},         
             {'LOWER': {'IN': ['of']}, 'OP': '?'},                                            
             {'POS': 'DET', 'OP': '?'},
-            {'POS': 'ADJ', 'OP': '?'},
+            {'POS': 'ADJ', 'OP': '*'},
+            {'POS': 'PROPN', 'OP': '*'},
             {'POS': 'CCONJ', 'OP': '?'},
             {'POS': 'ADV', 'OP': '?'},
-            {'POS': 'ADJ', 'OP': '?'},
+            {'POS': 'ADJ', 'OP': '*'},
             {'LEMMA': {'IN': self.items_first_word_lower}},                                # matches on the first word of multi-word items (lower case)
             {'LEMMA': {'IN': self.items_second_word_lower}}],                              # matches on the second word of multi-word items (lower case)
         ]
@@ -236,10 +240,15 @@ class NERMatcher():
             {'LEMMA': {'IN': self.mobs_second_word_lower}}]
         ]
     
-    def match_dialogue(self, dialogue):
+    def match_dialogue(self, dialogue, testing_mode = False):
 
         test_dialogue = self.nlp(dialogue)
         target_info = {}
+
+        if testing_mode == True:
+            # testing 
+            for token in test_dialogue:
+                print(f'Token: \1{token.text}\', Token POS: {token.pos_}, Token Lemma: {token.lemma_}')
 
         init_matches = self.matcher(test_dialogue)
         for match_id, start, end in init_matches:
@@ -254,14 +263,14 @@ class NERMatcher():
 
                 string_id2 = self.nlp.vocab.strings[match_id2]
                 match2 = match1[start2:end2]
-                if string_id2 == 'MOB_QUEST_PATTERN' and string_id2 == 'TARGET_ITEM':
+                if (string_id == 'MOB_QUEST_PATTERN' and string_id2 == 'TARGET_ITEM') or (string_id == 'ITEM_QUEST_PATTERN' and string_id2 == 'TARGET_MOB'):
                     continue 
                 if string_id2 == 'TARGET_ITEM':
-                    target_info[string_id]['target_item'] = match2 
+                    target_info[string_id]['target_item'] = str(match2)
                 elif string_id2 == 'TARGET_MOB':
-                    target_info[string_id]['target_mob'] = match2
+                    target_info[string_id]['target_mob'] = str(match2)
                 elif string_id2 == 'TARGET_QUANTITY':
-                    target_info[string_id]['target_quantity'] = match2
+                    target_info[string_id]['target_quantity'] = str(match2)
     
         return target_info
 
@@ -269,3 +278,6 @@ class NERMatcher():
 # test_dialogue = 'hey there, I heard you\'re quite the adventurer, would you be willing to help me out by slaying 10 lava crabs for me?'
 # test_dialogue = 'hey there, i heard you\'re quite the adventurer, would you be willing to collect 10 pieces of bixite for me? i need them for a new art project i\'m working on.'
 # test_dialogue = 'hey there, i heard you\'re quite the adventurer, would you be willing to collect 10 cranberry pips for me? i need them for a new recipe i\'m working on.'
+# test_dialogue = 'would you be willing to collect 700 juicy juicy juicy juicy juicy strawberries for me'
+# test_matcher = NERMatcher()
+# print(test_matcher.match_dialogue(test_dialogue, testing_mode=True))
