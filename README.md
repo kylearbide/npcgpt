@@ -1,4 +1,7 @@
 # npcgpt
+
+Writeup: https://medium.com/@sean_skimmer/npc-gpt-3f4cb5272773
+
 Leveraging large language models for video games and NPCs. This proof of concept is built out for the game [Stardew Valley](https://www.stardewvalley.net/). The project is made up of 3 parts, described below.
 
 ## Part 1: Character Generation 
